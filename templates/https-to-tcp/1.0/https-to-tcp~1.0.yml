@@ -1,0 +1,771 @@
+shared:
+  templates:
+    "[https-to-tcp~1.0]":
+      version: 1.0
+      description: "The http-to-tcp template provides functionality to transfer, filter/transform and send from HTTP requests to a TCP listener, via an integration-hub pipeline."
+      placeholders:
+        "destinationServers":
+          description: "List of servers to send the pipeline output to"
+          bind-to-exchange: true
+          required: true
+          type: "array"
+
+        "apiKey":
+          description: "Only requests with this present will be able to process data"
+          bind-to-exchange: true
+          required: false
+          defaultValue: ""
+
+        "blankPlaceholder":
+          description: "String to replace blank values with"
+          required: false
+          defaultValue: "N/A"
+
+        "allowList":
+          description: "List of logic statments to determin if the request can proceed"
+          required: true
+        "denyList":
+          description: "List of logic statments to halt the request"
+          required: true
+
+        "templates":
+          description: "List of templates to match and format the data"
+          required: true
+
+        "logProcessed":
+          description: "To log all target SQL statements set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logReceived":
+          description: "To log all retrieved data set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logDropped":
+          description: "To log all dropped data set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+        "path":
+          description: "The path to listen on for requests"
+          required: false
+          type: "string"
+          defaultValue: ""
+        "port":
+          description: "Target port number allocated for third party applications"
+          required: true
+          type: "integer"
+          defaultValue: "6780"
+        "protocol":
+          description: "The http protocol for the http listener"
+          required: false
+          type: "string"
+          defaultValue: "https"
+        "hostname":
+          description: "Host to bound the listner to"
+          required: false
+          type: "string"
+          defaultValue: "0.0.0.0"
+        "newlinePlaceholder":
+          description: "String to replace newline characters values with"
+          required: false
+          defaultValue: " "
+
+        "preprocessHeaders":
+          description: ""
+          required: false
+          defaultValue: ""
+
+      exceptions:
+      # REF-AOD - Catch data conversion exceptions
+      - catches:
+        - "com.fasterxml.jackson.core.JsonParseException"
+        - "com.fasterxml.jackson.core.io.JsonEOFException"
+        - "org.yaml.snakeyaml.parser.ParserException"
+        handled:
+          type: constant
+          expression: "true"
+        use-original-message: true
+        steps:
+        # REF-OCY - Log the error
+        - method: log
+          level: ERROR
+          message: "Error parsing body: ${body}. Caused by: ${exception.message}"
+        # REF-GXV - Set header "CamelHttpResponseCode" to 400
+        - method: setHeader
+          key: CamelHttpResponseCode
+          value:
+            type: constant
+            expression: 400
+        # REF-1SL - Set header "Content-Type" to "text/plain"
+        - method: setHeader
+          key: Content-Type
+          value:
+            type: constant
+            expression: text/plain
+        # REF-FG2 - Set body to message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "Error parsing: ${body}. Please check message channel logs for more details"
+
+      # REF-EJC - Catch genric exception
+      - catches:
+        - "java.lang.Exception"
+        handled:
+          type: constant
+          expression: true
+        steps:
+        # REF- - Log the error
+        - method: log
+          level: ERROR
+          message: "Error processing data. Please check message channel logs. ${exception.message}"
+        # REF-ONW - Set header "CamelHttpResponseCode" to 400
+        - method: setHeader
+          key: CamelHttpResponseCode
+          value:
+            type: constant
+            expression: 400
+        # REF-31X - Set body to error message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "Error processing data. Please check message channel logs. ${exception.message}"
+
+      # REF-M0L - Catch No payload
+      - catches:
+        - "org.apache.camel.NoTypeConversionAvailableException"
+        handled:
+          type: constant
+          expression: true
+        steps:
+        # REF- - Log the error
+        - method: log
+          level: ERROR
+          message: "No conent in the payload"
+        # REF-PO0 - Set header "CamelHttpResponseCode" to 400
+        - method: setHeader
+          key: CamelHttpResponseCode
+          value:
+            type: constant
+            expression: 400
+        # REF-91R - Set body to error message
+        - method: setBody
+          expression:
+            type: constant
+            expression: "Error no content body"
+
+      # REF-XAG - Failed to send on socket
+      - catches:
+        - "java.net.ConnectException"
+        handled:
+          type: constant
+          expression: true
+        steps:
+        # REF- - Log the error
+        - method: log
+          level: "ERROR"
+          message: "Failed to send body to ${exchangeProperty.destinationHost}"
+        # REF-ZOV - Build log message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | parentId=${headers.parentId} | failed(${exchange.properties['internalMatchedKey']}) | [dest=${exchangeProperty.destinationHost}, message=${exchange.properties['internalProcessedMessage']}]\\n"
+        # REF-4KD - Write log message to “failed” file
+        - method: to
+          component: file
+          properties:
+            directoryName: "$[[envvar.iss.log.dir]]"
+            fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.failed
+            fileExist: Append
+        - method: stop
+
+      steps:
+      # REF-36J - HTTP Listener
+      - method: from
+        component: rest
+        properties:
+          method: post
+          path: "$[[path]]"
+          component: jetty
+          uriTemplate: ""
+          scheme: "$[[protocol]]"
+          host: $[[hostname]]
+          port: $[[port]]
+          enableCORS: true
+          sendServerVersion: false
+          matchOnUriPrefix: true
+          sslContextParameters: "$[[sslContextParameters]]"
+
+      # REF- -  Api key check
+      - method: choice
+        when:
+        - predicate:
+            type: simple
+            expression: "${exchangeProperty.apiKey} != null && ${header.apiKey} == null || ${header.apiKey} != ${exchangeProperty.apiKey}"
+          steps:
+          # REF- - Log Error
+          - method: log
+            level: "ERROR"
+            message: "apiKey '${header.apiKey}' is incorrect"
+          # REF- - Set header "CamelHttpResponseCode" to 400
+          - method: setHeader
+            key: CamelHttpResponseCode
+            value:
+              type: constant
+              expression: 400
+          # REF- - Set body to error message
+          - method: setBody
+            expression:
+              type: constant
+              expression: '{"status": "error", "error": "API key is incorrect"}'
+          # REF- - Set content type header
+          - method: setHeader
+            key: Content-Type
+            value:
+              type: constant
+              expression: application/json
+          - method: stop
+
+      # REF-B9G - Store incoming message as "internalOrigMsg" property
+      - method: setProperty
+        key: internalOrigMsg
+        value:
+          type: "simple"
+          expression: "${body}"
+
+      # REF- - Set header "requestId" to the initial "parent" correlationId
+      - method: setHeader
+        key: parentId
+        value:
+          type: "simple"
+          expression: "${exchangeId}"
+
+      # REF- - Store headers in exchange
+      - method: process
+        classname: com.interlinksoftware.integrationhub.config.step.processor.HeadersToPropertyProcessor
+
+      # REF-L14 - IF logReceived is enabled
+      - method: choice
+        when:
+        - predicate:
+            type: simple
+            expression: "${exchangeProperty.placeholders[logReceived]} != null && ${exchangeProperty.placeholders[logReceived]} == true"
+          steps:
+          # REF- - Debug message
+          - method: log
+            level: "DEBUG"
+            message: "Writing body to recieved file"
+          # REF-RAT - Build log message
+          - method: setBody
+            expression:
+              type: simple
+              expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | recieved | ${bodyAs(String)}\\n"
+          # REF-H9Z - Log message to file
+          - method: to
+            component: file
+            properties:
+              directoryName: "$[[envvar.iss.log.dir]]"
+              fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
+              fileExist: Append
+
+      # REF- - Set body to origin message
+      - method: setBody
+        expression:
+          type: simple
+          expression: "${exchangeProperty.internalOrigMsg}"
+
+      # REF- - Handle pre-processor headers
+      - method: choice
+        placeholderKey: "preprocessHeaderChoice"
+        builder:
+          data: preprocessHeaders
+          predicate:
+            type: simple
+            expression: "$[[preprocessHeaderChoice.key]]"
+          steps:
+          # REF- - Debug message
+          - method: log
+            level: "DEBUG"
+            message: "body '${body}' has matched preprocess statement '$[[preprocessHeaderChoice.key]]'"
+
+          # REF- - Push body keys to headers
+          - method: process-with-properties
+            classname: com.interlinksoftware.integrationhub.config.step.processor.PropertiesToHeadersProcessor
+            properties:
+              body: $[[preprocessHeaderChoice.value]]
+
+        otherwise:
+        - method: log
+          level: "DEBUG"
+          message: "body '${body}' has NOT matched preprocess statement"
+
+      # REF- - Set body to origin message
+      - method: setBody
+        expression:
+          type: simple
+          expression: "${exchangeProperty.internalOrigMsg}"
+
+      # REF-4IZ - Data decoding
+      - method: choice
+        when:
+        # REF-BEK
+        - predicate:
+            type: simple
+            expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
+          steps:
+          # REF- - Debug message
+          - method: log
+            level: "DEBUG"
+            message: "decoding from gzip"
+          - method: unmarshal
+            type: gzip
+
+      # REF-1CY -  Datatype decoding
+      - method: choice
+        when:
+        # REF-0KL - Unmarshal JSON
+        - predicate:
+            type: simple
+            expression: "${header.Content-Type} ~~ 'json'"
+          steps:
+          # REF- - Debug message
+          - method: log
+            level: "DEBUG"
+            message: "decoding from json"
+          - method: unmarshal
+            type: json
+        # REF-FU6 - Unmarshal XML
+        - predicate:
+            type: simple
+            expression: "${header.Content-Type} ~~ 'xml'"
+          steps:
+          # REF- - Debug message
+          - method: log
+            level: "DEBUG"
+            message: "decoding from xml"
+          - method: unmarshal
+            type: xml
+        # REF-5JV - Unmarshal YAML
+        - predicate:
+            type: simple
+            expression: "${header.Content-Type} ~~ 'yaml'"
+          steps:
+          # REF- - Debug message
+          - method: log
+            level: "DEBUG"
+            message: "decoding from yaml"
+          - method: unmarshal
+            type: yaml
+        # REF-SCT - If datatype is unknown
+        otherwise:
+        - method: choice
+          when:
+          - predicate:
+              type: simple
+              expression: "${exchangeProperty.placeholders[logReceived]} != null && ${exchangeProperty.placeholders[logReceived]} == true"
+            steps:
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "datatype '${header.Content-Type}' unknown"
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "writing to recieved file"
+            # REF-1QW - Build log message
+            - method: setBody
+              expression:
+                type: simple
+                expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | parentId=${headers.parentId}  | missed(${header.Content-Type}) | ${bodyAs(String)}\\n"
+            # REF-4UJ - Write log message to file
+            - method: to
+              component: file
+              properties:
+                directoryName: "$[[envvar.iss.log.dir]]"
+                fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
+                fileExist: Append
+        # REF-0OP - Set header "CamelHttpResponseCode" to 400
+        - method: setHeader
+          key: CamelHttpResponseCode
+          value:
+            type: constant
+            expression: 400
+        # REF-JEF - Set Body to error message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "Unknown datatype '${header.Content-Type}'\\n"
+        # Stop processing any further
+        - method: stop
+
+      # REF- - Handle allow list
+      - method: choice
+        placeholderKey: "allowChoice"
+        builder:
+          data: allowList
+          predicate:
+            type: simple
+            expression: "$[[allowChoice.value]]"
+          steps:
+          # REF- - Debug message
+          - method: log
+            level: "DEBUG"
+            message: "body '${body}' has matched allow statement '$[[allowChoice.value]]'"
+          # REF-PJI - Handle deny list
+          - method: choice
+            placeholderKey: "denyChoice"
+            builder:
+              data: denyList
+              predicate:
+                type: simple
+                expression: "$[[denyChoice.value]]"
+              steps:
+              # REF- - Debug message
+              - method: log
+                level: "DEBUG"
+                message: "body '${body}' has matched deny statement '$[[denyChoice.value]]', writing to dropped file"
+              # REF-76Y - If message is denied, build log message
+              - method: setBody
+                expression:
+                  type: simple
+                  expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | parentId=${headers.parentId}  | dropped | ${bodyAs(String)}\\n"
+              # REF-B9T - Write message to file
+              - method: to
+                component: file
+                properties:
+                  directoryName: "$[[envvar.iss.log.dir]]"
+                  fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.dropped
+                  fileExist: Append
+              # REF- - Set body to json result
+              - method: setBody
+                expression:
+                  type: simple
+                  expression: '{ "status": "dropped", "correlationId": "${exchangeId}"}'
+              - method: stop
+
+            # REF-WW4 - If the message hasn't been dropped
+            otherwise:
+            - method: choice
+              when:
+              - predicate:
+                  type: simple
+                  expression: "${bodyAs(String)} != 'missed'"
+                steps:
+                # REF-IS2 - If the message matches a template key
+                - method: choice
+                  placeholderKey: "templateChoice"
+                  builder:
+                    data: templates
+                    predicate:
+                      type: simple
+                      expression: "$[[templateChoice.key]]"
+                    steps:
+                    # REF- - Debug message
+                    - method: log
+                      level: "DEBUG"
+                      message: "body '${body}' has matched template statement '$[[templateChoice.key]]'"
+                    # REF-8R9 - Set property "internalMatchFound" to true
+                    - method: setProperty
+                      key: internalMatchFound
+                      value:
+                        type: "constant"
+                        expression: true
+                    # REF-89R - Set property "internalMatchedKey" to the matched key
+                    - method: setProperty
+                      key: internalMatchedKey
+                      value:
+                        type: "constant"
+                        expression: "$[[templateChoice.key]]"
+
+                    # REF- - Debug message
+                    - method: log
+                      level: "DEBUG"
+                      message: "splitting body using '$[[templateChoice.value.split]]'"
+                    # REF-SLB - Split payload if array
+                    - method: split
+                      aggregation-strategy:
+                        type: collect-to-property
+                      expressions:
+                      - type: simple
+                        expression: "$[[templateChoice.value.split]]"
+                      steps:
+                      # REF- - Store split message as "internalSplitMsg" header
+                      - method: setProperty
+                        key: internalSplitMsg
+                        value:
+                          type: "simple"
+                          expression: "${body}"
+
+                      # REF- - Set Body to contents of property "internalSplitMsg"
+                      - method: setBody
+                        expression:
+                          type: simple
+                          expression: "${exchange.properties[internalSplitMsg]}"
+
+                      # REF- - Restore original headers
+                      - method: process
+                        classname: com.interlinksoftware.integrationhub.config.step.processor.RestoreOriginHeadersProcessor
+                      # REF- - Cleanse headers
+                      - method: process
+                        classname: com.interlinksoftware.integrationhub.config.step.processor.CleanseHeadersProcessor
+
+                      # REF- - Store exchangeId as CorrelationId
+                      - method: setHeader
+                        key: correlationId
+                        value:
+                          type: simple
+                          expression: "${exchangeId}"
+
+                      # REF- - Remove Authorization header
+                      - method: removeHeader
+                        key: Authorization
+
+                      # REF-QDZ - Set header "CamelFreemarkerTemplate" to the matched template
+                      - method: setHeader
+                        key: CamelFreemarkerTemplate
+                        value:
+                          type: "constant"
+                          expression: |
+                            <@compress single_line=true>
+                              <#assign placeholder = "$[[blankPlaceholder]]">
+                              <#assign newline_placeholder = "$[[newlinePlaceholder]]">
+
+                              <#function auto_pipe pipeline_data='null' parentkey=''>
+                                <#local temp_data = "">
+
+                                  <#if pipeline_data?is_hash_ex>
+                                    <#local pipeline_data_keys = pipeline_data?keys>
+
+                                    <#list pipeline_data_keys as key>
+
+                                      <#if parentkey?length != 0>
+                                        <#local key_fmt = "${parentkey}.${key}">
+                                      <#else>
+                                        <#local key_fmt = "${key}">
+                                      </#if>
+                                      <#local keyExists = pipeline_data[key]?? >
+
+                                      <#if !key?contains("HttpServlet")>
+                                        <#local temp_data = "${temp_data} ${auto_pipe(pipeline_data[key], key_fmt)}">
+                                      </#if>
+                                    </#list>
+
+                                  <#elseif pipeline_data?is_boolean>
+                                    <#local temp_data = "${temp_data} ${parentkey} = ${pipeline_data?string('true', 'false')} |">
+
+                                  <#elseif pipeline_data?is_enumerable>
+                                    <#list pipeline_data as array_item>
+                                      <#if parentkey?length != 0>
+                                        <#local key_fmt = "${parentkey}.${array_item?index}">
+                                      <#else>
+                                        <#local key_fmt = "${array_item?index}">
+                                      </#if>
+
+                                      <#local temp_data = "${temp_data} ${auto_pipe(pipeline_data[array_item?index], key_fmt)}">
+                                    </#list>
+
+                                  <#elseif pipeline_data?is_string || pipeline_data?is_number>
+
+                                   <#local temp_data = "${temp_data} ${parentkey} = ${sanitize(pipeline_data!'${placeholder}')} |">
+
+                                  <#elseif pipeline_data?is_date>
+                                    <#local temp_data = "${temp_data} ${parentkey} = ${pipeline_data?datetime?string.iso} |">
+                                  <#else>
+                                    <#local temp_data = "${temp_data} ${placeholder} |">
+                                  </#if>
+
+                                <#return temp_data>
+                              </#function>
+
+                              <#function sanitize sdata='null'>
+                                  <#if sdata?length != 0>
+                                    <#if sdata?is_number>
+                                      <#return sdata?string.computer>
+                                    <#elseif sdata?is_string>
+                                      <#return sdata?replace('(\r\n)+|\r+|\n', newline_placeholder, 'r')>
+                                    </#if>
+                                  <#else>
+                                      <#return "${placeholder}">
+                                  </#if>
+                              </#function>
+
+                              <#assign auto = "${auto_pipe(body, '')} ${auto_pipe(headers, '')}">
+
+                              $[[templateChoice.value.format]]
+                            </@compress>
+
+                      # REF-4A1 - Compile FTL template
+                      - method: to
+                        component: freemarker
+                        properties:
+                          resourceUri: dummy
+                          allowTemplateFromHeader: true
+                          allowContextMapAll: true
+
+                      # REF-OHH - Set property "internalProcessedMessage" to body
+                      - method: setProperty
+                        key: internalProcessedMessage
+                        value:
+                          type: "simple"
+                          expression: "${body}"
+                      # REF-3P0 - If logProcessed is enabled
+                      - method: choice
+                        when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[logProcessed]} != null && ${exchangeProperty.placeholders[logProcessed]} == true"
+                          steps:
+                          # REF- - Debug message
+                          - method: log
+                            level: "DEBUG"
+                            message: "writing to proccessed file"
+                          # REF-ACZ - Build log message
+                          - method: setBody
+                            expression:
+                              type: simple
+                              expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | parentId=${headers.parentId}  | processed(${exchange.properties['internalMatchedKey']}) | ${bodyAs(String)}\\n"
+                          # REF-4MH - Log message to file
+                          - method: to
+                            component: file
+                            properties:
+                              directoryName: "$[[envvar.iss.log.dir]]"
+                              fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.processed
+                              fileExist: Append
+
+                      # REF- - Set body to json result
+                      - method: setBody
+                        expression:
+                          type: simple
+                          expression: '{ "status": "processed", "key": "${exchangeProperty.internalMatchedKey.replaceAll("\u0022","")}", "correlationId": "${exchangeId}"}'
+
+                      # REF-6CU - Loop over each BES host
+                      - method: split
+                        expressions:
+                        - type: simple
+                          expression: "${exchangeProperty.placeholders[destinationServers]}"
+                        steps:
+                        # REF-JC9 - Set property "destinationHost" to the destination host and port
+                        - method: setProperty
+                          key: destinationHost
+                          value:
+                            type: "simple"
+                            expression: "${body[hostname]}:${body[port]}"
+                        # REF- - Debug message
+                        - method: log
+                          level: "DEBUG"
+                          message: "sending body to ${exchangeProperty.destinationHost}"
+                        # REF-AGS - Set body to the processed message
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: "${exchange.properties[internalProcessedMessage]}"
+                        # # REF-OE1 - Send payload to socket
+                        - method: dynamic-to
+                          expression: "netty:tcp://${exchange.properties[destinationHost]}?clientMode=true&sync=false&textline=true"
+
+                  # If no template match
+                  otherwise:
+                  # REF- - Debug message
+                  - method: log
+                    level: "DEBUG"
+                    message: "body does not match any defined templates"
+                  # REF-AGM - If log received is enabled
+                  - method: choice
+                    when:
+                    - predicate:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[logReceived]} != null && ${exchangeProperty.placeholders[logReceived]} == true"
+                      steps:
+                      # REF- - Debug message
+                      - method: log
+                        level: "DEBUG"
+                        message: "writing to the received file"
+                      # REF-34G - Build log message
+                      - method: setBody
+                        expression:
+                          type: simple
+                          expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | parentId=${headers.parentId}  | missed(not-match) | ${bodyAs(String)}\\n"
+                      # REF-PFG - Write log message to file
+                      - method: to
+                        component: file
+                        properties:
+                          directoryName: "$[[envvar.iss.log.dir]]"
+                          fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
+                          fileExist: Append
+                  # REF- - Set body to json result
+                  - method: setBody
+                    expression:
+                      type: simple
+                      expression: '{ "status": "no-match", "correlationId": "${exchangeId}"}'
+                  - method: stop
+
+          # REF- - Restore headers from exchange
+          - method: process
+            classname: com.interlinksoftware.integrationhub.config.step.processor.RestoreOriginHeadersProcessor
+
+          # REF- - Set header "CamelFreemarkerTemplate" to the result template
+          - method: setHeader
+            key: CamelFreemarkerTemplate
+            value:
+              type: "constant"
+              expression: |
+                <@compress single_line=true>
+                  {
+                    "status": "OK",
+                    "requestId": "${headers.parentId}",
+                    "results": [
+
+                      <#if exchange.properties.AggregationResult??>
+                        <#list exchange.properties.AggregationResult as result>
+                          ${result.body!""}<#if result?has_next>,</#if>
+                        </#list>
+                      </#if>
+
+                    ]
+                  }
+                </@compress>
+
+          # REF- - Compile FTL template
+          - method: to
+            component: freemarker
+            properties:
+              resourceUri: dummy
+              allowTemplateFromHeader: true
+              allowContextMapAll : true
+
+          # REF- - Set content type header
+          - method: setHeader
+            key: Content-Type
+            value:
+              type: constant
+              expression: application/json
+
+        otherwise:
+        # REF- - Debug message
+        - method: log
+          level: "DEBUG"
+          message: "body does not match an allow statement, writing to dropped file"
+        # REF- - If message is denied, build log message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | parentId=${headers.parentId}  | dropped | ${bodyAs(String)}\\n"
+        # REF- - Write message to file
+        - method: to
+          component: file
+          properties:
+            directoryName: "$[[envvar.iss.log.dir]]"
+            fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.dropped
+            fileExist: Append
+        # REF- - Set body to json result
+        - method: setBody
+          expression:
+            type: simple
+            expression: '{ "status": "dropped", "correlationId": "${exchangeId}"}'
+        - method: stop

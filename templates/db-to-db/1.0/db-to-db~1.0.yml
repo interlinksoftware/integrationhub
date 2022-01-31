@@ -1,0 +1,248 @@
+shared:
+  templates:
+    "[db-to-db~1.0]":
+      version: 1.0
+      description: "The db-to-db template provides functionality to transfer, filter/transform and update data between databases using JDBC, via an integration-hub pipeline."
+      placeholders:
+        "sql":
+          description: "Map of SQL statements"
+          bind-to-exchange: true
+          required: true
+          type: "array"
+        "logReceived":
+          description: "To log all retrieved data set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          required: false
+          defaultValue: true
+          type: "boolean"
+        "logProcessed":
+          description: "To log all target SQL statements set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          required: false
+          defaultValue: true
+          type: "boolean"
+        "schedule":
+          description: "The cron string that defines the schedule for this pipeline"
+          required: false
+          defaultValue: "0 * * ? * *"
+          type: "string"
+        "sourceDataSource":
+          description: "The data source name to use for the pipeline input"
+          required: true
+          type: "string"
+        "targetDataSource":
+          description: "The data source name to use for the pipeline output"
+          required: true
+          type: "string"
+
+      exceptions:
+
+      steps:
+      # REF-VMX - Run schedule
+      - method: from
+        component: quartz
+        properties:
+          triggerName: "$[[pipeline.id]]Trigger"
+          cron: "$[[schedule]]"
+          fireNow: false
+          startDelayedSeconds: 0
+          triggerStartDelay: 0
+
+      # REF- - Store exchangeId as CorrelationId
+      - method: setHeader
+        key: correlationId
+        value:
+          type: simple
+          expression: "${exchangeId}"
+
+      # REF-ZCP - Loop over SQL statements
+      - method: split
+        expressions:
+        - type: simple
+          expression: "${exchangeProperty.placeholders[sql]}"
+        steps:
+        # REF-YPH - Set property "sourceSqlStatement" to select statement
+        - method: setProperty
+          key: sourceSqlStatement
+          value:
+            type: "simple"
+            expression: "${body[sourceSqlStatement]}"
+        # REF-COY - Set property "targetSqlStatement" to insert statement
+        - method: setProperty
+          key: targetSqlStatement
+          value:
+            type: "simple"
+            expression: "${body[targetSqlStatement]}"
+
+        # REF- - Set checkpoint action
+        - method: setProperty
+          key: checkpointAction
+          value:
+            type: "constant"
+            expression: "read"
+        # REF- - Set default value
+        - method: setProperty
+          key: checkpointDefaultValue
+          value:
+            type: "simple"
+            expression: "${body[checkpointDefault]}"
+        # REF- - Set checkpoint key
+        - method: setProperty
+          key: checkpointKey
+          value:
+            type: "simple"
+            expression: "${body[checkpointKey]}"
+        # REF- - Set checkpoint name
+        - method: setProperty
+          key: checkpointName
+          value:
+            type: "simple"
+            expression: "${body[checkpointName]}"
+
+        # REF- - Read from checkpoint
+        - method: process
+          classname: com.interlinksoftware.integrationhub.config.step.processor.CheckpointProcessor
+
+        # REF- - Set header "CamelFreemarkerTemplate" to the source SQL statement
+        - method: setHeader
+          key: CamelFreemarkerTemplate
+          value:
+            type: "simple"
+            expression: "${body[sourceSqlStatement]}"
+
+        # REF- - Compile FTL template
+        - method: to
+          component: freemarker
+          properties:
+            resourceUri: dummy
+            allowTemplateFromHeader: true
+            allowContextMapAll: true
+
+        - method: log
+          level: DEBUG
+          message: "Source SQL Statement = '${body}'"
+
+        # REF-2JD - Run query against database
+        - method: to
+          component: jdbc
+          properties:
+            dataSourceName: "$[[sourceDataSource]]"
+            useHeadersAsParameters: true
+        # REF-3DU - Loop over returned rows
+        - method: split
+          expressions:
+          - type: simple
+            expression: "${body}"
+          steps:
+          # REF- - Push body keys to headers
+          - method: process
+            classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+          # REF-GPD - Store incoming message as "internalOrigMsg" header
+          - method: setProperty
+            key: internalOrigMsg
+            value:
+              type: "simple"
+              expression: "${body}"
+
+          # REF-S7O - If log recieved is enabled
+          - method: choice
+            when:
+            - predicate:
+                type: simple
+                expression: "$[[logReceived]] != null && $[[logReceived]] == true"
+              steps:
+              - method: log
+                level: DEBUG
+                message: "writing to the recieved file"
+              # REF-UQR - Build log message
+              - method: setBody
+                expression:
+                  type: simple
+                  expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | recieved | ${bodyAs(String)}\\n"
+              # REF-JV1 - Write log message to file
+              - method: to
+                component: file
+                properties:
+                  directoryName: "/opt/ISS/logs/integration-hub/"
+                  fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
+                  fileExist: Append
+
+          # REF-EPF - Set body to "internalOrigMsg" property
+          - method: setBody
+            expression:
+              type: simple
+              expression: "${exchange.properties[internalOrigMsg]}"
+
+          # REF-GTZ - Set header "CamelFreemarkerTemplate" to the insert statement
+          - method: setHeader
+            key: CamelFreemarkerTemplate
+            value:
+              type: "simple"
+              expression: "${exchange.properties[targetSqlStatement]}"
+
+          # REF-7BF - Compile FTL template
+          - method: to
+            component: freemarker
+            properties:
+              resourceUri: dummy
+              allowTemplateFromHeader: true
+
+          - method: log
+            level: DEBUG
+            message: "target SQL statement = '${body}'"
+
+          # REF-L1J - Set property "internalProcessedMessage" to body
+          - method: setProperty
+            key: internalProcessedMessage
+            value:
+              type: "simple"
+              expression: "${body}"
+
+          # REF-1UV - If logProcessed is enabled
+          - method: choice
+            when:
+            - predicate:
+                type: constant
+                expression: "$[[logProcessed]] != null && $[[logProcessed]] == true"
+              steps:
+              - method: log
+                level: DEBUG
+                message: "writing to the processed file"
+              # REF-Z26 - Build log message
+              - method: setBody
+                expression:
+                  type: simple
+                  expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | processed(${exchange.properties['internalMatchedKey']}) | ${bodyAs(String)}\\n"
+              # REF-LTA - Log message to file
+              - method: to
+                component: file
+                properties:
+                  directoryName: "/opt/ISS/logs/integration-hub/"
+                  fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.processed
+                  fileExist: Append
+
+          # REF-RHU - Set body to the processed message
+          - method: setBody
+            expression:
+              type: simple
+              expression: "${exchange.properties[internalProcessedMessage]}"
+
+          # REF-LWL - Run insert on destination db
+          - method: to
+            component: jdbc
+            properties:
+              dataSourceName: "$[[targetDataSource]]"
+              useHeadersAsParameters: true
+
+          # REF- - Set body to the processed message
+          - method: setBody
+            expression:
+              type: simple
+              expression: "${exchange.properties[internalOrigMsg]}"
+          # REF- - Set checkpoint action to write
+          - method: setProperty
+            key: checkpointAction
+            value:
+              type: "constant"
+              expression: "write"
+          # REF- - Write to checkpoint
+          - method: process
+            classname: com.interlinksoftware.integrationhub.config.step.processor.CheckpointProcessor
