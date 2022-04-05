@@ -10,7 +10,7 @@ The https-to-tcp template provides a secure HTTP endpoint that 3rd Party applica
 
 ## Install
 
-Download the version of the db-to-tcp template that you require from github to your integration-hub server.
+Download the version of the https-to-tcp template that you require from github to your integration-hub server.
 
 Run the following to install directly from Github:
 <font size="1">
@@ -20,7 +20,10 @@ ih-cli template import \
 ```
   </font>
   
-If your server does not have access to Github you can download the file and place it in the ```integration-hub/config/templates``` directory.
+If your server does not have access to Github you can download the file, copy to the server and place it directly into the ```integration-hub/config/templates``` directory or import via the integration-hub cli:
+```bash
+ih-cli template import /path/to/file/https-to-tcp~<version>.yml
+```
 ***
 
 ## Configure
@@ -33,9 +36,10 @@ You will need to create a pipeline to use a template. A sample pipeline definiti
 
 ## Migrating from piHTTP to https-to-tcp based pipeline
 
-If you are wanting to migrate from piHTTP to integration-hub, then perform the following steps:
-- Ensure you have installed the https-to-tcp template in the */opt/ISS/integration-hub/config/templates* directory.
-- Create a TCP based BES Message Channel to receive the messages from the pipeline(s) on.
+If you wish to migrate from piHTTP to integration-hub, then perform the following steps:
+- Ensure that the integration-hub has been installed to the BES server containing the piHTTP integration and that the ```piHTTP.cfg``` to be converted exists in the  */opt/ISS/POWERpack/cfg* directory.
+- Confirm you have installed the https-to-tcp template to the */opt/ISS/integration-hub/config/templates* directory.
+- Create a TCP based BES Message Channel to receive the messages from the pipeline(s).
 - Download the 
   ```convertBesPihttpToPipeline``` from Github, this can be manually downloaded and placed in the **/opt/ISS/integration-hub/config** directory or using the command below as the ppadmin user.
   ```bash
@@ -44,9 +48,12 @@ If you are wanting to migrate from piHTTP to integration-hub, then perform the f
   chmod +x convertBesPihttpToPipeline
   ```
   
-- execute the conversion script as the ppadmin user and specify the tcp port number of the BES Message Channel created above.
+- Execute the conversion utility as the ppadmin user and enter both the Fully Qualified Domain Name of the target BES server and the tcp port number of the BES Message Channel created above when prompted.
   ```bash
   cd /opt/ISS/integration-hub/config
   ./convertBesPihttpToPipeline
   ```
-- The script will create the pipelines for the piHTTP message channels you have defined. Ensure these have been added to the **pipelines.yml** file to add them to your integration-hub instance.
+A new pipeline file, ```piHTTP.yml```, will be created in the same directory where the ```convertBesPihttpToPipeline``` file resides for the piHTTP message channel being converted.  To activate the converted pipeline:
+- Ensure that references to both the https-to-tcp template and the converted pipeline .yml files have been added to the **pipelines.yml** file to add them to your integration-hub instance.
+- Stop the original piHTTP message channel, if necessary, as the converted piHTTP pipeline will be listening on the original piHTTP message channel port.
+- Restart the integration-hub service to pick up the changes.
