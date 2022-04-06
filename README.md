@@ -12,7 +12,7 @@ Integration Hub facilitates the collection, aggregation and correlation of data 
 
 To learn about the features and capabilities of the Interlink Software AIOps platform visit [www.interlinksoftware.com][interlink]
 
-[interlink]:<www.interlinksoftware.com>
+[interlink]:<https://www.interlinksoftware.com/>
 
 ### What is the Interlink Software Integration Hub Templates Repository?
 
