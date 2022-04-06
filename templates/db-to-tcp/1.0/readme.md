@@ -13,6 +13,18 @@ Before creating the pipeline you will need to gather the following information:
 
 ***
 
+### Create TCP BES message channel for TCP related Integration-Hub Pipelines
+
+Where a pipeline feeds alerts to a BES tcp message channel, a message channel may need to be created, which can be done as follows:
+
+- Log onto the BES server as ```ppadmin``` and navigate to the */opt/ISS/utils* directory
+- Execute the ```createBesMessageChannel``` utility file to create the BES message channel and when prompted: 
+- Enter the message channel name
+- Enter a description for the massage channel
+- Select TCP from the list of available message channel types
+- Enter a port number for the message channel
+- Start the message channel: ```ppStart -n <TCP Message Channel Name>```
+
 ## Create the Pipeline
 
 Create the pipeline file in the **integration-hub/config** directory.
