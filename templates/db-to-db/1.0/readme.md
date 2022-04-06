@@ -34,6 +34,9 @@ app:
         - method: pipeline-template
           ref: "db-to-db~1.0"
           properties:
+            logDropped: true
+            logReceived: true
+            logProcessed: true
             schedule: "0 * * ? * *"
             triggerName: "besalerts-trigger"
             sourceDataSource: "devbes_db"
@@ -116,6 +119,7 @@ app:
 |_checkpointDefault_ || The default value to use for the checkpoint if it cannot be determined |
 |_logReceived_|true |If set **true** all messages received will be logged to ```logs/<pipeline name>-<yyyymmdd>.received```|
 |_logProcessed_|true |If set **true** all messages processed will be logged to ```logs/<pipeline name>-<yyyymmdd>.processed```|
+|_logDropped_|true |If set **true** all messages dropped will be logged to ```logs/<pipeline name>-<yyyymmdd>.dropped```|
 
 
 **_*mandatory property_**
