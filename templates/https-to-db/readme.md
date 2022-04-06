@@ -10,7 +10,7 @@ The https-to-db template provides a secure HTTP endpoint that 3rd Party applicat
 
 ## Install
 
-Download the version of the db-to-tcp template that you require from github to your integration-hub server.
+Download the version of the https-to-tcp template that you require from github to your integration-hub server.
 
 Run the following to install directly from Github:
 <font size="1">
