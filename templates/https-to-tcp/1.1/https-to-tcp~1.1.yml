@@ -1,6 +1,6 @@
 shared:
   templates:
-    "[https-to-tcp]":
+    "[https-to-tcp-~1.1]":
       version: 1.1
       description: "The http-to-tcp template provides functionality to transfer, filter/transform and send from HTTP requests to a TCP listener, via an integration-hub pipeline."
       placeholders:
