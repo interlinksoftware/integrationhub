@@ -39,6 +39,7 @@ app:
           protocol: "https"
           port: 6781
           path: ""
+          sslContextParameters: "#IssSslConfig"
           logDropped: true
           logReceived: true
           logProcessed: true
@@ -82,6 +83,7 @@ To dynamically generate a pipe-delimited string based on the data, use the ${aut
 |_logReceived_|true |If set **true** all messages received will be logged to ```logs/<pipeline name>-<yyyymmdd>.received```|
 |_logProcessed_|true |If set **true** all messages processed will be logged to ```logs/<pipeline name>-<yyyymmdd>.processed```|
 |***_port_**| | Target port number allocated for third party applications (in the example above: 6781)|
+|***_sslContextParameters_**| | The reference to the SSL configuration to use for HTTPS (in the example above: #IssSslConfig)|
 |***_templates_**| | The transformation applied to the data |
 |***_destinationServers - hostname_**| | Hostname where the destination TCP Listener is running|
 |***_destinationServers - port_**| | Port number of the destination TCP Listener|
