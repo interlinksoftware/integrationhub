@@ -33,6 +33,7 @@ app:
           protocol: "https"
           port: 6781
           path: ""
+          sslContextParameters: "#IssSslConfig"
           logDropped: true
           logReceived: true
           logProcessed: true
