@@ -9,29 +9,24 @@ shared:
           bind-to-exchange: true
           required: true
           type: "array"
-
         "apiKey":
           description: "Only requests with this present will be able to process data"
           bind-to-exchange: true
           required: false
           defaultValue: ""
-
         "blankPlaceholder":
           description: "String to replace blank values with"
           required: false
           defaultValue: "N/A"
-
         "allowList":
           description: "List of logic statments to determin if the request can proceed"
           required: true
         "denyList":
           description: "List of logic statments to halt the request"
           required: true
-
         "templates":
           description: "List of templates to match and format the data"
           required: true
-
         "logProcessed":
           description: "To log all target SQL statements set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
           bind-to-exchange: true
@@ -50,7 +45,6 @@ shared:
           required: false
           type: "boolean"
           defaultValue: true
-
         "path":
           description: "The path to listen on for requests"
           required: false
@@ -75,7 +69,6 @@ shared:
           description: "String to replace newline characters values with"
           required: false
           defaultValue: " "
-
         "preprocessHeaders":
           description: ""
           required: false

@@ -35,333 +35,332 @@ shared:
           required: true
 
       exceptions:
-      # REF-YV9 - Failed to send on socket
-      - catches:
-        - "java.net.ConnectException"
-        handled:
-          type: constant
-          expression: true
-        steps:
-        - method: log
-          level: ERROR
-          message: "Failed to send body to ${exchangeProperty.destinationHost}"
-        - method: log
-          level: DEBUG
-          message: "writing to failed file"
-        # REF-LJ5 - Build log message
-        - method: setBody
-          expression:
-            type: simple
-            expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | failed(${exchange.properties['internalMatchedKey']}) | [dest=${exchangeProperty.destinationHost}, message=${exchange.properties['internalProcessedMessage']}]\\n"
-        # REF-5Y6 - Write log message to "failed" file
-        - method: to
-          component: file
-          properties:
-            directoryName: "/opt/ISS/logs/integration-hub/"
-            fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.failed
-            fileExist: Append
-        - method: stop
+        # REF-YV9 - Failed to send on socket
+        - catches:
+            - "java.net.ConnectException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed to send body to ${exchangeProperty.destinationHost}"
+            - method: log
+              level: DEBUG
+              message: "writing to failed file"
+            # REF-LJ5 - Build log message
+            - method: setBody
+              expression:
+                type: simple
+                expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | failed(${exchange.properties['internalMatchedKey']}) | [dest=${exchangeProperty.destinationHost}, message=${exchange.properties['internalProcessedMessage']}]\\n"
+            # REF-5Y6 - Write log message to "failed" file
+            - method: to
+              component: file
+              properties:
+                directoryName: "/opt/ISS/logs/integration-hub/"
+                fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.failed
+                fileExist: Append
+            - method: stop
 
       # REF-GP2 - Run schedule
       steps:
-      - method: from
-        component: quartz
-        properties:
-          triggerName: "$[[pipeline.id]]Trigger"
-          cron: "$[[cronSchedule]]"
-          fireNow: false
-          startDelayedSeconds: 0
-          triggerStartDelay: 0
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            cron: "$[[cronSchedule]]"
+            fireNow: false
+            startDelayedSeconds: 0
+            triggerStartDelay: 0
 
-      # REF- - Store exchangeId as CorrelationId
-      - method: setHeader
-        key: correlationId
-        value:
-          type: simple
-          expression: "${exchangeId}"
-
-      # REF-Z6C - Loop over each defined SQL statement
-      - method: split
-        expressions:
-        - type: simple
-          expression: "${exchangeProperty.placeholders[sql]}"
-        steps:
-
-        # REF- - Set checkpoint action
-        - method: setProperty
-          key: checkpointAction
-          value:
-            type: "constant"
-            expression: "read"
-        # REF- - Set default value
-        - method: setProperty
-          key: checkpointDefaultValue
-          value:
-            type: "simple"
-            expression: "${body[checkpointDefault]}"
-        # REF- - Set checkpoint key
-        - method: setProperty
-          key: checkpointKey
-          value:
-            type: "simple"
-            expression: "${body[checkpointKey]}"
-        # REF- - Set checkpoint name
-        - method: setProperty
-          key: checkpointName
-          value:
-            type: "simple"
-            expression: "${body[checkpointName]}"
-
-        # REF- - Read from checkpoint
-        - method: process
-          classname: com.interlinksoftware.integrationhub.config.step.processor.CheckpointProcessor
-
-        # REF-98A - Set header "CamelFreemarkerTemplate" to the SQL statement
+        # REF- - Store exchangeId as CorrelationId
         - method: setHeader
-          key: CamelFreemarkerTemplate
+          key: correlationId
           value:
-            type: "simple"
-            expression: "${body[selectStatement]}"
-
-        # REF-BVG - Compile FTL template
-        - method: to
-          component: freemarker
-          properties:
-            resourceUri: dummy
-            allowTemplateFromHeader: true
-            allowContextMapAll: true
-
-        - method: log
-          level: DEBUG
-          message: "sql statement = ${body}"
-
-        # REF- - Set body to select statement
-        - method: setBody
-          expression:
             type: simple
-            expression: "${body}"
+            expression: "${exchangeId}"
 
-        # REF-XDD - Execute the query in the database
-        - method: to
-          component: jdbc
-          properties:
-            dataSourceName: "$[[dataSourceName]]"
-            useHeadersAsParameters: true
-        # REF-88T - Loop over the returned rows
+        # REF-Z6C - Loop over each defined SQL statement
         - method: split
           expressions:
-          - type: simple
-            expression: "${body}"
+            - type: simple
+              expression: "${exchangeProperty.placeholders[sql]}"
           steps:
-          # REF-258 - Store incoming message as "internalOrigMsg" property
-          - method: setProperty
-            key: internalOrigMsg
-            value:
-              type: "simple"
-              expression: "${body}"
+            # REF- - Set checkpoint action
+            - method: setProperty
+              key: checkpointAction
+              value:
+                type: "constant"
+                expression: "read"
+            # REF- - Set default value
+            - method: setProperty
+              key: checkpointDefaultValue
+              value:
+                type: "simple"
+                expression: "${body[checkpointDefault]}"
+            # REF- - Set checkpoint key
+            - method: setProperty
+              key: checkpointKey
+              value:
+                type: "simple"
+                expression: "${body[checkpointKey]}"
+            # REF- - Set checkpoint name
+            - method: setProperty
+              key: checkpointName
+              value:
+                type: "simple"
+                expression: "${body[checkpointName]}"
 
-          # REF-I0N - If logReceived is enabled
-          - method: choice
-            when:
-            - predicate:
+            # REF- - Read from checkpoint
+            - method: process
+              classname: com.interlinksoftware.integrationhub.config.step.processor.CheckpointProcessor
+
+            # REF-98A - Set header "CamelFreemarkerTemplate" to the SQL statement
+            - method: setHeader
+              key: CamelFreemarkerTemplate
+              value:
+                type: "simple"
+                expression: "${body[selectStatement]}"
+
+            # REF-BVG - Compile FTL template
+            - method: to
+              component: freemarker
+              properties:
+                resourceUri: dummy
+                allowTemplateFromHeader: true
+                allowContextMapAll: true
+
+            - method: log
+              level: DEBUG
+              message: "sql statement = ${body}"
+
+            # REF- - Set body to select statement
+            - method: setBody
+              expression:
                 type: simple
-                expression: "$[[logReceived]] != null && $[[logReceived]] == true"
-              steps:
-              - method: log
-                level: DEBUG
-                message: "writing to the received file"
-              # REF-PBH - Build log message
-              - method: setBody
-                expression:
-                  type: simple
-                  expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | recieved | ${bodyAs(String)}\\n"
-              # REF-Y8M - Write log message to file
-              - method: to
-                component: file
-                properties:
-                  directoryName: "/opt/ISS/logs/integration-hub/"
-                  fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
-                  fileExist: Append
+                expression: "${body}"
 
-          # REF-BLO - Set Body to contents of property "internalOrigMsg"
-          - method: setBody
-            expression:
-              type: simple
-              expression: "${exchange.properties[internalOrigMsg]}"
-
-          # REF-84V - If the message matches a template key
-          - method: choice
-            builder:
-              data: templates
-              predicate:
-                type: simple
-                expression: "$[[choice.key]]"
-              steps:
-              # REF-GPA - Set property "internalMatchedKey" to the matched key
-              - method: setProperty
-                key: internalMatchedKey
-                value:
-                  type: "constant"
-                  expression: "$[[choice.key]]"
-
-              # REF-98A - Set header "CamelFreemarkerTemplate" to the matched template
-              - method: setHeader
-                key: CamelFreemarkerTemplate
-                value:
-                  type: "constant"
-                  expression: |
-                    <@compress single_line=true>
-
-                        <#function auto_pipe pipeline_data='null' parentkey=''>
-                          <#local temp_data = "">
-
-                            <#if pipeline_data?is_hash_ex>
-                              <#local pipeline_data_keys = pipeline_data?keys>
-
-                              <#list pipeline_data_keys as key>
-
-                                <#if parentkey?length != 0>
-                                  <#local key_fmt = "${parentkey}.${key}">
-                                <#else>
-                                  <#local key_fmt = "${key}">
-                                </#if>
-                                <#local keyExists = pipeline_data[key]?? >
-
-                                <#if !key?contains("CamelHttpServlet") || !key?contains("mergedJobDataMap") || !key?contains("jobInstance") || !key?contains("scheduler")>
-                                  <#local temp_data = "${temp_data} ${auto_pipe(pipeline_data[key], key_fmt)}">
-                                </#if>
-                              </#list>
-
-                            <#elseif pipeline_data?is_boolean>
-                              <#local temp_data = "${temp_data} ${parentkey} = ${pipeline_data?string('true', 'false')} |">
-
-                            <#elseif pipeline_data?is_enumerable>
-                              <#list pipeline_data as array_item>
-                                <#if parentkey?length != 0>
-                                  <#local key_fmt = "${parentkey}.${array_item?index}">
-                                <#else>
-                                  <#local key_fmt = "${array_item?index}">
-                                </#if>
-
-                                <#local temp_data = "${temp_data} ${auto_pipe(pipeline_data[array_item?index], key_fmt)}">
-                              </#list>
-
-                            <#elseif pipeline_data?is_string || pipeline_data?is_number>
-
-                                <#if pipeline_data?length != 0>
-                                  <#local temp_data = "${temp_data} ${parentkey} = ${pipeline_data!'N/A'} |">
-                                <#else>
-                                  <#local temp_data = "${temp_data} ${parentkey} = N/A |">
-                                </#if>
-
-                            <#elseif pipeline_data?is_date>
-                              <#local temp_data = "${temp_data} ${parentkey} = ${pipeline_data?datetime?string.iso} |">
-                            <#else>
-                              <#local temp_data = "${temp_data} N/A |">
-                            </#if>
-
-                          <#return temp_data>
-                        </#function>
-
-                        <#assign auto = "${auto_pipe(body, '')?replace('\n', '.')}">
-
-                        $[[choice.value]]
-                      </@compress>
-
-              # REF-BVG - Compile FTL template
-              - method: to
-                component: freemarker
-                properties:
-                  resourceUri: dummy
-                  allowTemplateFromHeader: true
-              # REF-1Z8 - Set property "internalProcessedMessage" to body
-              - method: setProperty
-                key: internalProcessedMessage
-                value:
-                  type: "simple"
-                  expression: "${body}"
-              # REF-6B5 - If logProcessed is enabled
-              - method: choice
-                when:
-                - predicate:
-                    type: constant
-                    expression: "$[[logProcessed]] != null && $[[logProcessed]] == true"
-                  steps:
-                  - method: log
-                    level: DEBUG
-                    message: "writing to the processed file"
-                  # REF-1VS - Build log message
-                  - method: setBody
-                    expression:
-                      type: simple
-                      expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | processed(${exchange.properties['internalMatchedKey']}) | ${bodyAs(String)}\\n"
-                  # REF-E97 - Log message to file
-                  - method: to
-                    component: file
-                    properties:
-                      directoryName: "/opt/ISS/logs/integration-hub/"
-                      fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.processed
-                      fileExist: Append
-
-              # REF-8WF - Loop over each BES host
-              - method: split
-                expressions:
+            # REF-XDD - Execute the query in the database
+            - method: to
+              component: jdbc
+              properties:
+                dataSourceName: "$[[dataSourceName]]"
+                useHeadersAsParameters: true
+            # REF-88T - Loop over the returned rows
+            - method: split
+              expressions:
                 - type: simple
-                  expression: "${exchangeProperty.placeholders[destinationServers]}"
-                steps:
-                # REF-776 - Set property "destinationHost" to the destination host and port
+                  expression: "${body}"
+              steps:
+                # REF-258 - Store incoming message as "internalOrigMsg" property
                 - method: setProperty
-                  key: destinationHost
+                  key: internalOrigMsg
                   value:
                     type: "simple"
-                    expression: "${body[hostname]}:${body[port]}"
-                - method: log
-                  level: DEBUG
-                  message: "Sending body to ${exchangeProperty.destinationHost}"
-                # REF-2Y3 - Set body to the processed message
-                - method: setBody
-                  expression:
-                    type: simple
-                    expression: "${exchange.properties[internalProcessedMessage]}"
-                # REF-2H6 - Send payload to socket
-                - method: dynamic-to
-                  expression: "netty:tcp://${exchange.properties[destinationHost]}?clientMode=true&sync=false&textline=true"
+                    expression: "${body}"
 
-                # REF- - Set body to the processed message
+                # REF-I0N - If logReceived is enabled
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "$[[logReceived]] != null && $[[logReceived]] == true"
+                      steps:
+                        - method: log
+                          level: DEBUG
+                          message: "writing to the received file"
+                        # REF-PBH - Build log message
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | recieved | ${bodyAs(String)}\\n"
+                        # REF-Y8M - Write log message to file
+                        - method: to
+                          component: file
+                          properties:
+                            directoryName: "/opt/ISS/logs/integration-hub/"
+                            fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
+                            fileExist: Append
+
+                # REF-BLO - Set Body to contents of property "internalOrigMsg"
                 - method: setBody
                   expression:
                     type: simple
                     expression: "${exchange.properties[internalOrigMsg]}"
-                # REF- - Set checkpoint action to write
-                - method: setProperty
-                  key: checkpointAction
-                  value:
-                    type: "constant"
-                    expression: "write"
-                # REF- - Write to checkpoint
-                - method: process
-                  classname: com.interlinksoftware.integrationhub.config.step.processor.CheckpointProcessor
 
-            otherwise:
-            # REF-S0Q - If logReceived is enabled
-            - method: choice
-              when:
-              - predicate:
-                  type: simple
-                  expression: "$[[logReceived]] != null && $[[logReceived]] == true"
-                steps:
-                - method: log
-                  level: DEBUG
-                  message: "writing to recieved file"
-                # REF-TOL - Build log message
-                - method: setBody
-                  expression:
-                    type: simple
-                    expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | missed | ${bodyAs(String)}\\n"
-                # REF-YAL - Write log message to file
-                - method: to
-                  component: file
-                  properties:
-                    directoryName: "/opt/ISS/logs/integration-hub/"
-                    fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
-                fileExist: Append
+                # REF-84V - If the message matches a template key
+                - method: choice
+                  builder:
+                    data: templates
+                    predicate:
+                      type: simple
+                      expression: "$[[choice.key]]"
+                    steps:
+                      # REF-GPA - Set property "internalMatchedKey" to the matched key
+                      - method: setProperty
+                        key: internalMatchedKey
+                        value:
+                          type: "constant"
+                          expression: "$[[choice.key]]"
+
+                      # REF-98A - Set header "CamelFreemarkerTemplate" to the matched template
+                      - method: setHeader
+                        key: CamelFreemarkerTemplate
+                        value:
+                          type: "constant"
+                          expression: |
+                            <@compress single_line=true>
+
+                                <#function auto_pipe pipeline_data='null' parentkey=''>
+                                  <#local temp_data = "">
+
+                                    <#if pipeline_data?is_hash_ex>
+                                      <#local pipeline_data_keys = pipeline_data?keys>
+
+                                      <#list pipeline_data_keys as key>
+
+                                        <#if parentkey?length != 0>
+                                          <#local key_fmt = "${parentkey}.${key}">
+                                        <#else>
+                                          <#local key_fmt = "${key}">
+                                        </#if>
+                                        <#local keyExists = pipeline_data[key]?? >
+
+                                        <#if !key?contains("CamelHttpServlet") || !key?contains("mergedJobDataMap") || !key?contains("jobInstance") || !key?contains("scheduler")>
+                                          <#local temp_data = "${temp_data} ${auto_pipe(pipeline_data[key], key_fmt)}">
+                                        </#if>
+                                      </#list>
+
+                                    <#elseif pipeline_data?is_boolean>
+                                      <#local temp_data = "${temp_data} ${parentkey} = ${pipeline_data?string('true', 'false')} |">
+
+                                    <#elseif pipeline_data?is_enumerable>
+                                      <#list pipeline_data as array_item>
+                                        <#if parentkey?length != 0>
+                                          <#local key_fmt = "${parentkey}.${array_item?index}">
+                                        <#else>
+                                          <#local key_fmt = "${array_item?index}">
+                                        </#if>
+
+                                        <#local temp_data = "${temp_data} ${auto_pipe(pipeline_data[array_item?index], key_fmt)}">
+                                      </#list>
+
+                                    <#elseif pipeline_data?is_string || pipeline_data?is_number>
+
+                                        <#if pipeline_data?length != 0>
+                                          <#local temp_data = "${temp_data} ${parentkey} = ${pipeline_data!'N/A'} |">
+                                        <#else>
+                                          <#local temp_data = "${temp_data} ${parentkey} = N/A |">
+                                        </#if>
+
+                                    <#elseif pipeline_data?is_date>
+                                      <#local temp_data = "${temp_data} ${parentkey} = ${pipeline_data?datetime?string.iso} |">
+                                    <#else>
+                                      <#local temp_data = "${temp_data} N/A |">
+                                    </#if>
+
+                                  <#return temp_data>
+                                </#function>
+
+                                <#assign auto = "${auto_pipe(body, '')?replace('\n', '.')}">
+
+                                $[[choice.value]]
+                              </@compress>
+
+                      # REF-BVG - Compile FTL template
+                      - method: to
+                        component: freemarker
+                        properties:
+                          resourceUri: dummy
+                          allowTemplateFromHeader: true
+                      # REF-1Z8 - Set property "internalProcessedMessage" to body
+                      - method: setProperty
+                        key: internalProcessedMessage
+                        value:
+                          type: "simple"
+                          expression: "${body}"
+                      # REF-6B5 - If logProcessed is enabled
+                      - method: choice
+                        when:
+                          - predicate:
+                              type: constant
+                              expression: "$[[logProcessed]] != null && $[[logProcessed]] == true"
+                            steps:
+                              - method: log
+                                level: DEBUG
+                                message: "writing to the processed file"
+                              # REF-1VS - Build log message
+                              - method: setBody
+                                expression:
+                                  type: simple
+                                  expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | processed(${exchange.properties['internalMatchedKey']}) | ${bodyAs(String)}\\n"
+                              # REF-E97 - Log message to file
+                              - method: to
+                                component: file
+                                properties:
+                                  directoryName: "/opt/ISS/logs/integration-hub/"
+                                  fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.processed
+                                  fileExist: Append
+
+                      # REF-8WF - Loop over each BES host
+                      - method: split
+                        expressions:
+                          - type: simple
+                            expression: "${exchangeProperty.placeholders[destinationServers]}"
+                        steps:
+                          # REF-776 - Set property "destinationHost" to the destination host and port
+                          - method: setProperty
+                            key: destinationHost
+                            value:
+                              type: "simple"
+                              expression: "${body[hostname]}:${body[port]}"
+                          - method: log
+                            level: DEBUG
+                            message: "Sending body to ${exchangeProperty.destinationHost}"
+                          # REF-2Y3 - Set body to the processed message
+                          - method: setBody
+                            expression:
+                              type: simple
+                              expression: "${exchange.properties[internalProcessedMessage]}"
+                          # REF-2H6 - Send payload to socket
+                          - method: dynamic-to
+                            expression: "netty:tcp://${exchange.properties[destinationHost]}?clientMode=true&sync=false&textline=true"
+
+                          # REF- - Set body to the processed message
+                          - method: setBody
+                            expression:
+                              type: simple
+                              expression: "${exchange.properties[internalOrigMsg]}"
+                          # REF- - Set checkpoint action to write
+                          - method: setProperty
+                            key: checkpointAction
+                            value:
+                              type: "constant"
+                              expression: "write"
+                          # REF- - Write to checkpoint
+                          - method: process
+                            classname: com.interlinksoftware.integrationhub.config.step.processor.CheckpointProcessor
+
+                  otherwise:
+                    # REF-S0Q - If logReceived is enabled
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "$[[logReceived]] != null && $[[logReceived]] == true"
+                          steps:
+                            - method: log
+                              level: DEBUG
+                              message: "writing to recieved file"
+                            # REF-TOL - Build log message
+                            - method: setBody
+                              expression:
+                                type: simple
+                                expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | missed | ${bodyAs(String)}\\n"
+                            # REF-YAL - Write log message to file
+                            - method: to
+                              component: file
+                              properties:
+                                directoryName: "/opt/ISS/logs/integration-hub/"
+                                fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
+                          fileExist: Append

@@ -31,378 +31,377 @@ shared:
           required: true
 
       exceptions:
-      # REF-553 - Catch data conversion exceptions
-      - catches:
-        - "com.fasterxml.jackson.core.JsonParseException"
-        - "com.fasterxml.jackson.core.io.JsonEOFException"
-        - "org.yaml.snakeyaml.parser.ParserException"
-        handled:
-          type: constant
-          expression: "true"
-        use-original-message: true
-        steps:
-        # REF-028 - Log the error
-        - method: log
-          level: ERROR
-          message: "Error parsing body: ${body}. Caused by: ${exception.message}"
-        # REF-NP9 - Set header "CamelHttpResponseCode" to 400
-        - method: setHeader
-          key: CamelHttpResponseCode
-          value:
+        # REF-553 - Catch data conversion exceptions
+        - catches:
+            - "com.fasterxml.jackson.core.JsonParseException"
+            - "com.fasterxml.jackson.core.io.JsonEOFException"
+            - "org.yaml.snakeyaml.parser.ParserException"
+          handled:
             type: constant
-            expression: 400
-        # REF-E8N - Set header "Content-Type" to "text/plain"
-        - method: setHeader
-          key: Content-Type
-          value:
-            type: constant
-            expression: text/plain
-        # REF-3VS - Set body to message
-        - method: setBody
-          expression:
-            type: simple
-            expression: "Error parsing: ${body}. Please check message channel logs for more details"
-
-      # REF-QIM - Catch genric exception
-      - catches:
-        - "java.lang.Exception"
-        handled:
-          type: constant
-          expression: true
-        steps:
-        # REF- - Log the error
-        - method: log
-          level: ERROR
-          message: "Error processing data. ${exception.message}"
-        # REF-E71 - Set header "CamelHttpResponseCode" to 400
-        - method: setHeader
-          key: CamelHttpResponseCode
-          value:
-            type: constant
-            expression: 400
-        # REF-884 - Set body to error message
-        - method: setBody
-          expression:
-            type: constant
-            expression: "Error processing data. ${exception}"
-
-      # REF-IBG - Catch No payload
-      - catches:
-        - "org.apache.camel.NoTypeConversionAvailableException"
-        handled:
-          type: constant
-          expression: true
-        steps:
-        # REF- - Log the error
-        - method: log
-          level: ERROR
-          message: "No content in payload"
-        # REF-BAL - Set header "CamelHttpResponseCode" to 400
-        - method: setHeader
-          key: CamelHttpResponseCode
-          value:
-            type: constant
-            expression: 400
-        # REF-XVO - Set body to error message
-        - method: setBody
-          expression:
-            type: constant
-            expression: "Error no content body"
-
-      steps:
-      # REF-ZP4 - HTTP Listener
-      - method: from
-        component: rest
-        properties:
-          method: post,get
-          path: ""
-          uriTemplate: "/$[[dataSourceName]]/{table}"
-          component: jetty
-          scheme: "$[[protocol]]"
-          host: "$[[host]]"
-          port: "$[[port]]"
-          enableCORS: true
-          sendServerVersion: false
-          sslContextParameters: "$[[sslContextParameters]]"
-
-          dataSourceName: "$[[dataSourceName]]"
-
-      # REF- - Store incoming message as "internalOrigMsg" property
-      - method: setProperty
-        key: internalOrigMsg
-        value:
-          type: "simple"
-          expression: "${body}"
-
-      # REF- - IF logReceived is enabled
-      - method: choice
-        when:
-        - predicate:
-            type: simple
-            expression: "$[[logReceived]] != null && $[[logReceived]] == true"
+            expression: "true"
+          use-original-message: true
           steps:
-          # REF- - Debug message
-          - method: log
-            level: "DEBUG"
-            message: "Writing body to recieved file"
-          # REF- - Build log message
-          - method: setBody
-            expression:
-              type: simple
-              expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | recieved | ${bodyAs(String)}\\n"
-          # REF- - Log message to file
-          - method: to
-            component: file
-            properties:
-              directoryName: "$[[envvar.iss.log.dir]]"
-              fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
-              fileExist: Append
-
-      # REF- - Set body to origin message
-      - method: setBody
-        expression:
-          type: simple
-          expression: "${exchangeProperty.internalOrigMsg}"
-
-      # REF-KSD - Store exchangeId as CorrelationId
-      - method: setHeader
-        key: correlationId
-        value:
-          type: simple
-          expression: "${exchangeId}"
-
-      # REF-CDM - Convert the query string to a map
-      - method: setHeader
-        key: queryMap
-        value:
-          type: groovy
-          expression: |
-            def queryString  = headers.CamelHttpServletRequest.getQueryString()
-            if (queryString != null && queryString.length()) {
-              def mapParams = queryString.split('&').collectEntries { param -> param.split('=').collect { URLDecoder.decode(it) }}
-              headers.queryMap = mapParams
-            }
-
-      # REF-6AH - If POST request
-      - method: choice
-        when:
-        - predicate:
-            type: simple
-            expression: "${header.CamelHttpMethod} in 'POST'"
-          steps:
-          # REF- - Log the error
-          - method: log
-            level: DEBUG
-            message: "Http method is POST"
-          # REF-37A - Data decoding
-          - method: choice
-            when:
-            - predicate:
-                type: simple
-                expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
-              steps:
-              # REF- - Log the error
-              - method: log
-                level: DEBUG
-                message: "Decoding from gzip"
-              # REF-R48 - Decode from gzip
-              - method: unmarshal
-                type: gzip
-
-          # REF-QH8 -  Datatype decoding
-          - method: choice
-            when:
-            # REF-URG - Unmarshal JSON
-            - predicate:
-                type: simple
-                expression: "${header.Content-Type} in 'text/json,application/json'"
-              steps:
-              # REF- - Log the error
-              - method: log
-                level: DEBUG
-                message: "Decoding from json"
-              - method: unmarshal
-                type: json
-            # REF-82E - Unmarshal XML
-            - predicate:
-                type: simple
-                expression: "${header.Content-Type} in 'text/xml,application/xml'"
-              steps:
-              # REF- - Log the error
-              - method: log
-                level: DEBUG
-                message: "Decoding from xml"
-              - method: unmarshal
-                type: xml
-            # REF-PVI - Unmarshal YAML
-            - predicate:
-                type: simple
-                expression: "${header.Content-Type} in 'text/yaml,application/yaml,application/x-yaml'"
-              steps:
-              # REF- - Log the error
-              - method: log
-                level: DEBUG
-                message: "Decoding from yaml"
-              - method: unmarshal
-                type: yaml
-            # REF-N83 - If datatype is unknown
-            otherwise:
-            # REF- - Log the error
+            # REF-028 - Log the error
             - method: log
-              level: DEBUG
-              message: "Unknown datatype ${header.Content-Type}"
-            # REF-253 - Unknown datatype
+              level: ERROR
+              message: "Error parsing body: ${body}. Caused by: ${exception.message}"
+            # REF-NP9 - Set header "CamelHttpResponseCode" to 400
+            - method: setHeader
+              key: CamelHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-E8N - Set header "Content-Type" to "text/plain"
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: text/plain
+            # REF-3VS - Set body to message
             - method: setBody
               expression:
                 type: simple
-                expression: "ERROR: Unknow datatype '${header.Content-Type}'"
+                expression: "Error parsing: ${body}. Please check message channel logs for more details"
 
-      # REF-I7J - If the message matches a template key
-      - method: choice
-        builder:
-          data: templates
-          predicate:
-            type: simple
-            expression: "$[[choice.key]]"
+        # REF-QIM - Catch genric exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
           steps:
-          # REF- - Log the error
-          - method: log
-            level: DEBUG
-            message: "Body matches template '$[[choice.key]]'"
-          # REF- - Push body keys to headers
-          - method: process
-            classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
-          # REF-TFH - Set header "CamelFreemarkerTemplate" to the matched template
-          - method: setHeader
-            key: CamelFreemarkerTemplate
-            value:
-              type: "constant"
-              expression: |
-                <@compress single_line=true>
-                  $[[choice.value]]
-                </@compress>
-        otherwise:
-        # REF-G28 - Set header "CamelFreemarkerTemplate" to the dynamically generated select statement
-        - method: setHeader
-          key: CamelFreemarkerTemplate
-          value:
-            type: "constant"
-            expression: |
-              <@compress single_line=true>
-                <#assign statement = "">
-                <#if headers.CamelHttpMethod == "GET">
-                  <#assign statement = "select * from ${headers.table}">
-                  <#if headers.queryMap?has_content>
-                    <#assign statement = "${statement} where">
-                    <#list headers.queryMap as key, value>
-                      <#assign statement = "${statement} ${key} = '${value}'">
-                    </#list>
-                  </#if>
-                </#if>
-
-                ${statement}
-              </@compress>
-
-      # REF-LOX - Compile FTL template
-      - method: to
-        component: freemarker
-        properties:
-          resourceUri: dummy
-          allowTemplateFromHeader: true
-
-      # REF-KSD - Store exchangeId as CorrelationId
-      - method: setProperty
-        key: generatedSql
-        value:
-          type: simple
-          expression: "${body}"
-
-      # REF- - Log the error
-      - method: log
-        level: DEBUG
-        message: "Generated SQL statement = '${body}'"
-
-      # REF- - IF logProcessed is enabled
-      - method: choice
-        when:
-        - predicate:
-            type: simple
-            expression: "$[[logProcessed]] != null && $[[logProcessed]] == true"
-          steps:
-          # REF- - Debug message
-          - method: log
-            level: "DEBUG"
-            message: "Writing body to recieved file"
-          # REF- - Build log message
-          - method: setBody
-            expression:
-              type: simple
-              expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | processed | ${bodyAs(String)}\\n"
-          # REF- - Log message to file
-          - method: to
-            component: file
-            properties:
-              directoryName: "$[[envvar.iss.log.dir]]"
-              fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.processed
-              fileExist: Append
-
-      # REF- - Set body to the generated SQL
-      - method: setBody
-        expression:
-          type: simple
-          expression: "${exchangeProperty.generatedSql}"
-
-      # REF-ADC - Execute the query in the database
-      - method: to
-        component: jdbc
-        properties:
-          dataSourceName: "$[[dataSourceName]]"
-          useHeadersAsParameters: true
-
-
-      # REF-4E2 - If GET request
-      - method: choice
-        when:
-        # REF-QGQ
-        - predicate:
-            type: simple
-            expression: "${header.CamelHttpMethod} in 'GET'"
-          steps:
-          - method: choice
-            when:
-            # REF-NYN - Marshal JSON
-            - predicate:
-                type: simple
-                expression: "${header.Accept} in 'text/json,application/json'"
-              steps:
-              # REF- - Log the error
-              - method: log
-                level: DEBUG
-                message: "Converting body to json"
-              - method: marshal
-                type: json
-            # REF-1VS - Marshal XML
-            - predicate:
-                type: simple
-                expression: "${header.Accept} in 'text/xml,application/xml'"
-              steps:
-              # REF- - Log the error
-              - method: log
-                level: DEBUG
-                message: "Converting body to xml"
-              - method: marshal
-                type: xml
-            # REF-TKP - If datatype is unknown
-            otherwise:
             # REF- - Log the error
             - method: log
-              level: DEBUG
-              message: "No Accept header, converting body to json"
-            - method: marshal
-              type: json
-        otherwise:
-        # REF-8LM - If POST request return "OK"
+              level: ERROR
+              message: "Error processing data. ${exception.message}"
+            # REF-E71 - Set header "CamelHttpResponseCode" to 400
+            - method: setHeader
+              key: CamelHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-884 - Set body to error message
+            - method: setBody
+              expression:
+                type: constant
+                expression: "Error processing data. ${exception}"
+
+        # REF-IBG - Catch No payload
+        - catches:
+            - "org.apache.camel.NoTypeConversionAvailableException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "No content in payload"
+            # REF-BAL - Set header "CamelHttpResponseCode" to 400
+            - method: setHeader
+              key: CamelHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-XVO - Set body to error message
+            - method: setBody
+              expression:
+                type: constant
+                expression: "Error no content body"
+
+      steps:
+        # REF-ZP4 - HTTP Listener
+        - method: from
+          component: rest
+          properties:
+            method: post,get
+            path: ""
+            uriTemplate: "/$[[dataSourceName]]/{table}"
+            component: jetty
+            scheme: "$[[protocol]]"
+            host: "$[[host]]"
+            port: "$[[port]]"
+            enableCORS: true
+            sendServerVersion: false
+            sslContextParameters: "$[[sslContextParameters]]"
+
+            dataSourceName: "$[[dataSourceName]]"
+
+        # REF- - Store incoming message as "internalOrigMsg" property
+        - method: setProperty
+          key: internalOrigMsg
+          value:
+            type: "simple"
+            expression: "${body}"
+
+        # REF- - IF logReceived is enabled
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "$[[logReceived]] != null && $[[logReceived]] == true"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "Writing body to recieved file"
+                # REF- - Build log message
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | recieved | ${bodyAs(String)}\\n"
+                # REF- - Log message to file
+                - method: to
+                  component: file
+                  properties:
+                    directoryName: "$[[envvar.iss.log.dir]]"
+                    fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.received
+                    fileExist: Append
+
+        # REF- - Set body to origin message
         - method: setBody
           expression:
             type: simple
-            expression: "OK"
+            expression: "${exchangeProperty.internalOrigMsg}"
+
+        # REF-KSD - Store exchangeId as CorrelationId
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+
+        # REF-CDM - Convert the query string to a map
+        - method: setHeader
+          key: queryMap
+          value:
+            type: groovy
+            expression: |
+              def queryString  = headers.CamelHttpServletRequest.getQueryString()
+              if (queryString != null && queryString.length()) {
+                def mapParams = queryString.split('&').collectEntries { param -> param.split('=').collect { URLDecoder.decode(it) }}
+                headers.queryMap = mapParams
+              }
+
+        # REF-6AH - If POST request
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${header.CamelHttpMethod} in 'POST'"
+              steps:
+                # REF- - Log the error
+                - method: log
+                  level: DEBUG
+                  message: "Http method is POST"
+                # REF-37A - Data decoding
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Decoding from gzip"
+                        # REF-R48 - Decode from gzip
+                        - method: unmarshal
+                          type: gzip
+
+                # REF-QH8 -  Datatype decoding
+                - method: choice
+                  when:
+                    # REF-URG - Unmarshal JSON
+                    - predicate:
+                        type: simple
+                        expression: "${header.Content-Type} in 'text/json,application/json'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Decoding from json"
+                        - method: unmarshal
+                          type: json
+                    # REF-82E - Unmarshal XML
+                    - predicate:
+                        type: simple
+                        expression: "${header.Content-Type} in 'text/xml,application/xml'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Decoding from xml"
+                        - method: unmarshal
+                          type: xml
+                    # REF-PVI - Unmarshal YAML
+                    - predicate:
+                        type: simple
+                        expression: "${header.Content-Type} in 'text/yaml,application/yaml,application/x-yaml'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Decoding from yaml"
+                        - method: unmarshal
+                          type: yaml
+                  # REF-N83 - If datatype is unknown
+                  otherwise:
+                    # REF- - Log the error
+                    - method: log
+                      level: DEBUG
+                      message: "Unknown datatype ${header.Content-Type}"
+                    # REF-253 - Unknown datatype
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: "ERROR: Unknow datatype '${header.Content-Type}'"
+
+        # REF-I7J - If the message matches a template key
+        - method: choice
+          builder:
+            data: templates
+            predicate:
+              type: simple
+              expression: "$[[choice.key]]"
+            steps:
+              # REF- - Log the error
+              - method: log
+                level: DEBUG
+                message: "Body matches template '$[[choice.key]]'"
+              # REF- - Push body keys to headers
+              - method: process
+                classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+              # REF-TFH - Set header "CamelFreemarkerTemplate" to the matched template
+              - method: setHeader
+                key: CamelFreemarkerTemplate
+                value:
+                  type: "constant"
+                  expression: |
+                    <@compress single_line=true>
+                      $[[choice.value]]
+                    </@compress>
+          otherwise:
+            # REF-G28 - Set header "CamelFreemarkerTemplate" to the dynamically generated select statement
+            - method: setHeader
+              key: CamelFreemarkerTemplate
+              value:
+                type: "constant"
+                expression: |
+                  <@compress single_line=true>
+                    <#assign statement = "">
+                    <#if headers.CamelHttpMethod == "GET">
+                      <#assign statement = "select * from ${headers.table}">
+                      <#if headers.queryMap?has_content>
+                        <#assign statement = "${statement} where">
+                        <#list headers.queryMap as key, value>
+                          <#assign statement = "${statement} ${key} = '${value}'">
+                        </#list>
+                      </#if>
+                    </#if>
+
+                    ${statement}
+                  </@compress>
+
+        # REF-LOX - Compile FTL template
+        - method: to
+          component: freemarker
+          properties:
+            resourceUri: dummy
+            allowTemplateFromHeader: true
+
+        # REF-KSD - Store exchangeId as CorrelationId
+        - method: setProperty
+          key: generatedSql
+          value:
+            type: simple
+            expression: "${body}"
+
+        # REF- - Log the error
+        - method: log
+          level: DEBUG
+          message: "Generated SQL statement = '${body}'"
+
+        # REF- - IF logProcessed is enabled
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "$[[logProcessed]] != null && $[[logProcessed]] == true"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "Writing body to recieved file"
+                # REF- - Build log message
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | processed | ${bodyAs(String)}\\n"
+                # REF- - Log message to file
+                - method: to
+                  component: file
+                  properties:
+                    directoryName: "$[[envvar.iss.log.dir]]"
+                    fileName: $[[pipeline.id]]-$simple{date:now:yyyyMMdd}.processed
+                    fileExist: Append
+
+        # REF- - Set body to the generated SQL
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.generatedSql}"
+
+        # REF-ADC - Execute the query in the database
+        - method: to
+          component: jdbc
+          properties:
+            dataSourceName: "$[[dataSourceName]]"
+            useHeadersAsParameters: true
+
+        # REF-4E2 - If GET request
+        - method: choice
+          when:
+            # REF-QGQ
+            - predicate:
+                type: simple
+                expression: "${header.CamelHttpMethod} in 'GET'"
+              steps:
+                - method: choice
+                  when:
+                    # REF-NYN - Marshal JSON
+                    - predicate:
+                        type: simple
+                        expression: "${header.Accept} in 'text/json,application/json'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Converting body to json"
+                        - method: marshal
+                          type: json
+                    # REF-1VS - Marshal XML
+                    - predicate:
+                        type: simple
+                        expression: "${header.Accept} in 'text/xml,application/xml'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Converting body to xml"
+                        - method: marshal
+                          type: xml
+                  # REF-TKP - If datatype is unknown
+                  otherwise:
+                    # REF- - Log the error
+                    - method: log
+                      level: DEBUG
+                      message: "No Accept header, converting body to json"
+                    - method: marshal
+                      type: json
+          otherwise:
+            # REF-8LM - If POST request return "OK"
+            - method: setBody
+              expression:
+                type: simple
+                expression: "OK"
