@@ -2,6 +2,7 @@ shared:
   templates:
     "[db-to-tcp~1.0]":
       version: 1.0
+      minimumCompatibilityVersion: 1.0.0
       description: "The db-to-tcp template provides functionality to transfer, filter/transform and send data from databases using JDBC to a TCP listener, via an integration-hub pipeline."
       placeholders:
         "sql":

@@ -2,6 +2,7 @@ shared:
   templates:
     "[db-to-db~1.0]":
       version: 1.0
+      minimumCompatibilityVersion: 1.0.0
       description: "The db-to-db template provides functionality to transfer, filter/transform and update data between databases using JDBC, via an integration-hub pipeline."
       placeholders:
         "sql":
