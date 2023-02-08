@@ -1,8 +1,8 @@
 shared:
   templates:
-    "[https-to-tcp~1.0]":
+    "[webhook-to-tcp~1.0]":
       version: 1.0
-      description: "The http-to-tcp template provides functionality to transfer, filter/transform and send from HTTP requests to a TCP listener, via an integration-hub pipeline."
+      description: "The webhook-to-tcp template provides functionality to transfer, filter/transform and send from HTTP requests to a TCP listener, via an integration-hub pipeline."
       placeholders:
         "destinationServers":
           description: "List of servers to send the pipeline output to"

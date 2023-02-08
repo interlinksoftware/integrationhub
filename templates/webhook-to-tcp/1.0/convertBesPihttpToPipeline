@@ -189,11 +189,11 @@ function create_pipeline_file() {
         touch "${pipeline_file}"
 
         if is_https_configured "${file_to_convert}"; then
-            template="https-to-tcp~1.1"
+            template="webhook-to-tcp~1.0"
             protocol="https"
             ssl_context="sslContextParameters: \"#IssSslConfig\""
         else
-            template="http-to-tcp~v1.1"
+            template="webhook-to-tcp~v1.0"
             protocol="http"
             ssl_context=""
         fi

@@ -1,22 +1,22 @@
-# https-to-db Template
+# webhook-to-db Template
 
-The https-to-db template provides a secure HTTP endpoint that 3rd Party applications can target to transfer data via a webhook.  The integration-hub pipeline transfers, filters/transforms and updates the data, sending it on to the target database using JDBC.
+The webhook-to-db template provides a secure HTTP endpoint that 3rd Party applications can target to transfer data via a webhook.  The integration-hub pipeline transfers, filters/transforms and updates the data, sending it on to the target database using JDBC.
 
 <p align="center">
-<img src="../../assets/images/flow_http-to-db.jpg" />
+<img src="../../assets/images/flow_webhook-to-db.jpg" />
 </p>
 
 ***
 
 ## Install
 
-Download the version of the https-to-tcp template that you require from github to your integration-hub server.
+Download the version of the webhook-to-tcp template that you require from github to your integration-hub server.
 
 Run the following to install directly from Github:
 <font size="1">
 ```bash
 ih-cli template import \
-  https://raw.githubusercontent.com/interlinksoftware/integrationhub/main/templates/https-to-db/<version>/readme.md
+  https://raw.githubusercontent.com/interlinksoftware/integrationhub/main/templates/webhook-to-db/<version>/readme.md
 ```
   </font>
   

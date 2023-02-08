@@ -1,4 +1,4 @@
-# https-to-db v1.0
+# webhook-to-db v1.0
 
 ## Pipeline Prerequisites
 
@@ -28,7 +28,7 @@ app:
     "[sample-pipeline]":
       steps:
         - method: pipeline-template
-          ref: "https-to-db~1.0"
+          ref: "webhook-to-db~1.0"
           properties:
             logDropped: true
             logReceived: true

@@ -1,4 +1,4 @@
-# https-to-tcp v1.0
+# webhook-to-tcp v1.0
 
 ## Pipeline Prerequisites
 
@@ -9,7 +9,7 @@ Before creating the pipeline you will need to gather the following information:
 - A denyList to drop data that matches the specified string(s).  
 - An allowList to allow only data that matches the specified string(s).
 - A template that is applied after data matches the allowList to transform the data into a format accepted by the TCP Listener.
-- The server and port number for the destination TCP Listener (BES Message Channel).  To create the destination TCP Message Channel see ['Create TCP BES Message Channel for TCP related Integration-Hub Pipelines'](https://github.com/interlinksoftware/integrationhub/blob/main/templates/https-to-tcp/readme.md#configure)
+- The server and port number for the destination TCP Listener (BES Message Channel).  To create the destination TCP Message Channel see ['Create TCP BES Message Channel for TCP related Integration-Hub Pipelines'](https://github.com/interlinksoftware/integrationhub/blob/main/templates/webhook-to-tcp/readme.md#configure)
 
 ***
 
@@ -27,7 +27,7 @@ app:
     "[webhookToBesChannel]":
       steps:
       - method: pipeline-template
-        ref: "https-to-tcp~1.0"
+        ref: "webhook-to-tcp~1.0"
         properties:
           hostname: 0.0.0.0
           protocol: "https"
