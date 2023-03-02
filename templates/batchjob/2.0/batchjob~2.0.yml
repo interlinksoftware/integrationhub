@@ -1,0 +1,131 @@
+shared:
+  templates:
+    "[batchjob~2.0]":
+      version: "2.0"
+      minimumCompatibilityVersion: 2.0.0
+      description: "Batchjob Scheduler"
+      placeholders:
+        "schedule":
+          description: "The cron expression that defines the execution schedule for this pipeline"
+          required: true
+          type: "string"
+        "command":
+          description: "The command to be executed"
+          required: true
+          type: "string"
+        "description":
+          description: "A description of this pipeline"
+          required: true
+          type: "string"
+          defaultValue: ""
+        "args":
+          description: "arguments passed to the command (whitespace separated)"
+          required: false
+          type: "string"
+          defaultValue: " "
+        "timeout":
+          description: "The number of milliseconds to wait before terminating the command (default: 1 hour)"
+          required: false
+          type: "long"
+          defaultValue: 3600000
+      uiSchema:
+        type: object
+        properties:
+          cron:
+            type: grid
+            ui:
+              columns:
+                - 30%
+                - 65%
+              alignRow: baseline
+            properties:
+              schedule:
+                type: cron
+                title: cron expression*
+              description:
+                type: string
+                title: description*
+                validation:
+                  regex: .{4,}
+                  message: enter description
+          command:
+            type: grid
+            ui:
+              columns:
+                - 30%
+                - 54%
+                - 10%
+              alignRow: baseline
+            properties:
+              command:
+                type: text
+                title: command / script*
+                description: Absolute path to command/script to execute
+                validation:
+                  regex: .{4,}
+                  message: Absolute path to command/script to execute
+              args:
+                type: string
+                title: arguments
+                description: arguments to be passed to command/script
+                defaultValue: " "
+              timeout:
+                type: number
+                title: seconds
+                description: timeout (millisecs)
+                validation:
+                  regex: ^[1-9]\d{3,}
+                  message: timeout in milliseconds
+      pipelineFlow:
+        - type: block
+          label: Quartz Cron Scheduler
+          icon: clock
+        - type: arrow
+          forward: true
+        - type: block
+          icon: square-code
+          label: Execute Command/Script
+      steps:
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            cron: "$[[schedule]]"
+            fireNow: false
+            startDelayedSeconds: 0
+            triggerStartDelay: 0
+        - method: setBody
+          expression:
+            type: simple
+            expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | START: command=$[[command]] args=$[[args]]"
+        - method: isslog
+          message: "${body}"
+          type: processed
+        - method: to
+          component: exec
+          properties:
+            executable: $[[command]]
+            args: $[[args]]
+            workingDir: "$[[envvar.iss.config.dir]]"
+            timeout: $[[timeout]]
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${headers.Integration_HubExecExitValue} != null && ${headers.Integration_HubExecExitValue} == null || ${headers.Integration_HubExecExitValue} != 0"
+              steps:
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | FINISH: Command Failed command=$[[command]] args=$[[args]] returnCode=${headers.Integration_HubExecExitValue} response=${body}"
+                - method: isslog
+                  message: "${body}"
+                  type: failed
+          otherwise:
+            - method: setBody
+              expression:
+                type: simple
+                expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | FINISH: command=$[[command]] args=$[[args]] returnCode=${headers.Integration_HubExecExitValue} response=${body}"
+            - method: isslog
+              message: "${body}"
+              type: processed

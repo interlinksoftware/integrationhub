@@ -29,3 +29,8 @@ The following templates can be used within your pipelines to process data from D
 * [Database to Database](db-to-db) template enables copying of data between databases on a defined schedule. This can be used to consolidate data from federated datasources. Any JDBC compliant database is supported.
 
 ***
+
+## Batchjob
+
+* [Batchjob](batchjob) template allows the execution of non-interactive commands and scripts against a schedule. 
+
