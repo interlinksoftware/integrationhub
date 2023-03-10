@@ -44,7 +44,7 @@ Where a pipeline feeds alerts to a BES tcp message channel, a message channel ma
 
 ### Creating a pipeline
 
-You will need to create a pipeline to use a template. A sample pipeline definition is detailed in the README for each version of the template under the relevant directory, use that as a base for your pipeline.
+You will see the template listed within web-based application after you have installedt the templates. Define a pipeline as you would through the web interface.
 
 ## Migrating from piHTTP to webhook-to-tcp based pipeline
 
