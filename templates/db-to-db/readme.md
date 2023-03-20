@@ -13,14 +13,20 @@ The db-to-db template provides functionality to transfer, filter/transform and u
 Download the version of the db-to-db template that you require from github to your integration-hub server.
 
 Install directly from Github
-<font size="1">
+<font size="2">
 ```bash
 ih-cli template import \
-  https://raw.githubusercontent.com/interlinksoftware/integrationhub/main/templates/db-to-db/<version>/readme.md
+  https://raw.githubusercontent.com/interlinksoftware/integrationhub/main/templates/db-to-db/<version>/db-to-db~<version>.yml
 ```
-  </font>
-  
-If your server does not have access to Github you can download the template file and place it in the ```integration-hub/config/templates``` directory.
+</font>
+
+If your server does not have access to Github you can download the file, copy to the server and place it directly into the ```integration-hub/config/templates``` directory or import via the integration-hub cli:
+<font size="2">
+```bash
+ih-cli template import /path/to/file/db-to-db~<version>.yml
+```
+***
+</font>
 
 ***
 
@@ -88,4 +94,4 @@ For more information on how this is done refer to the vault section of the manag
 
 ### Creating a pipeline
 
-You will need to create a pipeline to use a template. A sample pipeline definition is detailed in the README for each version of the template under the relevant directory, use that as a base for your pipeline.
+You will see the template listed within web-based application after you have installed the templates. Define a pipeline as you would through the web interface.

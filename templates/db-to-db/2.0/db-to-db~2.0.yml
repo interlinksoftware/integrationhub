@@ -1,0 +1,445 @@
+shared:
+  templates:
+    "[db-to-db~2.0]":
+      version: 2.0
+      minimumCompatibilityVersion: 2.0.0
+      description: "The db-to-db template provides functionality to transfer, filter/transform and update data between databases using JDBC, via an integration-hub pipeline."
+      placeholders:
+        "sql":
+          description: "Map of SQL statements"
+          bind-to-exchange: true
+          required: true
+          type: "array"
+
+        "schedule":
+          description: "The cron string that defines the schedule for this pipeline"
+          required: true
+          defaultValue: "0 0 0 * * ?"
+          type: "string"
+
+        "sourceDataSource":
+          description: "The data source name to use for the pipeline input"
+          required: true
+          type: "string"
+
+        "targetDataSource":
+          description: "The data source name to use for the pipeline output"
+          required: true
+          type: "string"
+
+        "checkpointEnabled":
+          description: "Enable checkpointing feature for this pipeline"
+          required: false
+          defaultValue: false
+          type: "boolean"
+
+        "checkpointName":
+          description: "A unique name for this checkpoint field"
+          required: false
+          type: "string"
+
+        "checkpointKey":
+          description: "The field returned from the SQL source statement whose value is stored"
+          required: false
+          type: "string"
+
+        "checkpointType":
+          description: "The SQL data type (ie: date, integer, text)"
+          required: false
+          type: "string"
+
+        "checkpointDefault":
+          description: "A default value to used when the piepline is first run or if a value cannot be determined"
+          required: false
+          type: "string"
+
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+
+        "logReceived":
+          description: "To log all retrieved data set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          required: false
+          defaultValue: true
+          type: "boolean"
+
+        "logProcessed":
+          description: "To log all target SQL statements set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          required: false
+          defaultValue: true
+          type: "boolean"
+
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+        "logSent":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+      uiSchema:
+        type: stepper
+        ui:
+          height: 100%
+        properties:
+          source:
+            type: object
+            title: Source
+            properties:
+              schedule:
+                type: cron
+                title: Cron schedule
+              sourceDataSource:
+                type: string
+                title: Source Datasource
+                description: 'Datasource to pull data from'
+              sourceOptions:
+                type: expansion-panel
+                title: Optional Settings
+                ui:
+                  elevation: 2
+                properties:
+                  logReceived:
+                    defaultValue: true
+                    type: checkbox
+                    title: log messages received
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: Limit of failed/dropped/success/processed/received messages to display on the UI
+          process:
+            type: object
+            title: Process
+            properties:
+              sql:
+                type: array
+                title: SQL Statements
+                ui:
+                  columns:
+                    - 24%
+                    - 24%
+                    - 24%
+                    - 24%
+                  areas:
+                    - "sourceSqlStatement sourceSqlStatement targetSqlStatement targetSqlStatement"
+                    - "checkpointEnabled checkpointName . ."
+                    - "checkpointDefault checkpointType checkpointKey ."
+                  indexed: true
+                propertyTemplate:
+                  sourceSqlStatement:
+                    type: string
+                    title: Source SQL statement
+                    description: 'SQL statement to query data from the source database'
+                    ui:
+                      rows: 4
+                    help:
+                      icon: info-circle
+                      content: |-
+                        # Source SQL statement
+                        The SQL statement to execute agaionst the source DataSource
+
+                        ##### How to specify a checkpoint value in the source SQL statement
+
+                            # Select records from iss_pp_alerts_table and only return records > the last alertid from the previous execution
+                            SELECT * FROM iss_pp_alerts_table where alertid >= ${exchange.properties.checkpointValue}
+                  targetSqlStatement:
+                    type: string
+                    title: Target SQL statement
+                    description: 'SQL statement from saving data to the target datasource'
+                    ui:
+                      rows: 4
+                    help:
+                      icon: info-circle
+                      content: |-
+                        ### Target SQL statement
+
+                        Specify the SQL command that will be executed against each row returned from the data returned by the sourceSqlStatement. It is recommended that you use preparedStatement field definitions to protect against SQL injection, these are specified as :?fieldname:
+
+                        ##### See examples below
+
+                            # Insert statement passing alertId value as SQL prepared statement can cast as an integer
+                            INSERT INTO dev_alertIds(alertid) VALUES(:?alertid::integer)
+
+                            # Call stored procedure user_updates_insert as a SQL prepared statement and pass parameters from the source record.
+                            CALL user_updates_insert(:?ldate::text, :?stime::text, :?usersite::text, :?users::text, :?source::text, :?dateimported::timestamp)
+                  checkpointEnabled:
+                    type: checkbox
+                    title: Checkpointing
+                    defaultValue: false
+                  checkpointName:
+                    type: string
+                    title: Checkpoint Name
+                  checkpointDefault:
+                    type: string
+                    title: Default Value
+                  checkpointType:
+                    type: string
+                    title: Type
+                  checkpointKey:
+                    type: string
+                    title: Key
+                    help:
+                      icon: info-circle
+                      content: |-
+                        ### Checkpoints
+
+                        Using a checkpoint ensures only new data that matches your sourceSqlStatement is processed on each read. Each time the sourceSqlStatement is executed the checkpoint value from the previous execution is used.
+                            Checkpoint Name - A unique name for this checkpoint field
+                            Key             - The field returned from the SQL source statement whose value is stored
+                            Type            - The SQL data type (ie: date, integer, text)
+                            Default Value   - A default value to used when the piepline is first run or if a value cannot be determined
+
+                        In the example below, the checkpoint key is the alertid, which ensures only rows where the alertid is greater than the previous execution are returned.
+
+                        ##### How to specify a checkpoint value in the source SQL statement
+
+                            # Select records from iss_pp_alerts_table and only return records > the last alertid from the previous execution
+                            SELECT * FROM iss_pp_alerts_table where alertid >= ${exchange.properties.checkpointValue}
+          target:
+            type: object
+            title: Target
+            properties:
+              targetDataSource:
+                type: string
+                title: Target Datasource
+                description: 'Datasource to save data to'
+              targetOptions:
+                type: expansion-panel
+                title: Optional Settings
+                properties:
+                  targetprop:
+                    type: grid
+                    ui:
+                      columns:
+                        - 20%
+                        - 30%
+                      alignRow: baseline
+                    properties:
+                      logProcessed:
+                        type: checkbox
+                        title: log transformed messages
+                        defaultValue: true
+                      logSent:
+                        defaultValue: true
+                        type: checkbox
+                        title: log forwarded messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages which failed to be forwarded
+          final:
+            type: typography
+            defaultValue: Pipeline updated
+      pipelineFlow:
+        - type: block
+          label: Source Datasource
+          icon: database
+        - type: pipe
+          children:
+            - type: arrow
+              backward: true
+              forward: false
+              pullBackward: true
+            - type: block
+              label: query
+            - type: arrow
+              forward: true
+            - type: block
+              label: insert
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          icon: database
+          label: Target Datasource
+      exceptions:
+        # REF-EJC - Catch genric exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "Error processing data: ${exception.stacktrace}"
+            - method: isslog
+              message: "parentId=${headers.parentId} | failed() | Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+      steps:
+        # REF-VMX - Run schedule
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            cron: "$[[schedule]]"
+            fireNow: false
+            startDelayedSeconds: 0
+            triggerStartDelay: 0
+        # REF- - Store exchangeId as CorrelationId
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+        # REF-ZCP - Loop over SQL statements
+        - method: split
+          expressions:
+            - type: simple
+              expression: "${exchangeProperty.placeholders[sql]}"
+          steps:
+            # REF-YPH - Set property "sourceSqlStatement" to select statement
+            - method: setProperty
+              key: sourceSqlStatement
+              value:
+                type: "simple"
+                expression: "${body[sourceSqlStatement]}"
+            # REF-COY - Set property "targetSqlStatement" to insert statement
+            - method: setProperty
+              key: targetSqlStatement
+              value:
+                type: "simple"
+                expression: "${body[targetSqlStatement]}"
+            - method: setProperty
+              key: checkpointKey
+              value:
+                type: simple
+                expression: ${body[checkpointKey]}
+            - method: setProperty
+              key: checkpointName
+              value:
+                type: simple
+                expression: ${body[checkpointName]}
+            - method: setProperty
+              key: checkpointDefault
+              value:
+                type: simple
+                expression: ${body[checkpointDefault]}
+            - method: setProperty
+              key: checkpointEnabled
+              value:
+                type: simple
+                expression: ${body[checkpointEnabled]}
+            - method: setProperty
+              key: checkpointType
+              value:
+                type: simple
+                expression: ${body[checkpointType]}
+            # REF- - Read from checkpoint
+            - method: checkpoint
+              properties:
+                action: "read"
+                name: "${body[checkpointName]}"
+                type: "${body[checkpointType]}"
+                default: "${body[checkpointDefault]}"
+                enabled: "${body[checkpointEnabled]}"
+            # REF- - Set header "CamelFreemarkerTemplate" to the source SQL statement
+            - method: setHeader
+              key: CamelFreemarkerTemplate
+              value:
+                type: "simple"
+                expression: "${body[sourceSqlStatement]}"
+            # REF- - Compile FTL template
+            - method: to
+              component: freemarker
+              properties:
+                resourceUri: dummy
+                allowTemplateFromHeader: true
+                allowContextMapAll: true
+            - method: log
+              level: INFO
+              message: "Source SQL Statement = '${body}'"
+            # REF-2JD - Run query against database
+            - method: to
+              component: jdbc
+              properties:
+                dataSourceName: "$[[sourceDataSource]]"
+                useHeadersAsParameters: true
+            # REF-3DU - Loop over returned rows
+            - method: split
+              expressions:
+                - type: simple
+                  expression: "${body}"
+              steps:
+                # REF- - Push body keys to headers
+                - method: process
+                  classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+                # REF-GPD - Store incoming message as "internalOrigMsg" header
+                - method: setProperty
+                  key: internalOrigMsg
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # REF-S7O - If log received is enabled
+                - method: isslog
+                  message: "received() | ${bodyAs(String)}"
+                  type: received
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logReceived]]
+                  writeToDatabase: $[[logReceived]]
+                # REF-GTZ - Set header "CamelFreemarkerTemplate" to the insert statement
+                - method: setHeader
+                  key: CamelFreemarkerTemplate
+                  value:
+                    type: "simple"
+                    expression: "${exchange.properties[targetSqlStatement]}"
+                # REF-7BF - Compile FTL template
+                - method: to
+                  component: freemarker
+                  properties:
+                    resourceUri: dummy
+                    allowTemplateFromHeader: true
+                - method: log
+                  level: DEBUG
+                  message: "target SQL statement = '${body}'"
+                # REF-L1J - Set property "internalProcessedMessage" to body
+                - method: setProperty
+                  key: internalProcessedMessage
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                - method: isslog
+                  message: "processed(${exchange.properties['internalMatchedKey']}) | ${bodyAs(String)}"
+                  type: "processed"
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logProcessed]]
+                  writeToDatabase: $[[logProcessed]]
+                # REF-RHU - Set body to the processed message
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: "${exchange.properties[internalProcessedMessage]}"
+                # REF-LWL - Run insert on destination db
+                - method: to
+                  component: jdbc
+                  properties:
+                    dataSourceName: "$[[targetDataSource]]"
+                    useHeadersAsParameters: true
+                - method: isslog
+                  message: "success() | updateCount=${headers.CamelJdbcUpdateCount}"
+                  type: "success"
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logSent]]
+                  writeToDatabase: $[[logSent]]
+                # REF- - Write to checkpoint
+                - method: checkpoint
+                  properties:
+                    action: "write"
+                    name: "${exchangeProperty.checkpointName}"
+                    key: "${exchangeProperty.checkpointKey}"
+                    default: "${exchangeProperty.checkpointDefault}"
+                    type: "${exchangeProperty.checkpointType}"
+                    enabled: "${exchangeProperty.checkpointEnabled}"
