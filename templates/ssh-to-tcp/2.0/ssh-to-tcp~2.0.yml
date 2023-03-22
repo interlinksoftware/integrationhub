@@ -1,0 +1,876 @@
+shared:
+  templates:
+    "[ssh-to-tcp~2.0]":
+      version: "2.0"
+      minimumCompatibilityVersion: 2.0.0
+      description: "The ssh-to-tcp template provides functionality to transfer, filter/transform and send output from an SSH remote command/script to a TCP listener, via an integration-hub pipeline."
+      placeholders:
+        "schedule":
+          description: "The cron expression that defines the execution schedule for this pipeline"
+          required: false
+          defaultValue: "0 * * ? * *"
+          type: "string"
+        "hostname":
+          description: "The hostname or IP address of the remote SSH server"
+          required: true
+          type: string
+        "port":
+          description: "The port number of the remote SSH server"
+          required: true
+          type: integer
+          defaultValue: 22
+        "privateKeyAuth":
+          description: "Whether to enable private key authentication or not"
+          bind-to-exchange: true
+          required: false
+          type: boolean
+          defaultValue: false
+        "certResource":
+          description: "Full path to the private key"
+          required: false
+          type: string
+          defaultValue: ""
+        "certResourcePassword":
+          description: "The password to use for the private key (if required)"
+          required: false
+          valueType: encrypted
+          defaultValue: ""
+        "username":
+          description: "Username to use when connecting to the remote SSH server"
+          required: false
+          type: string
+          defaultValue: ""
+        "password":
+          description: "Password to use when connecting to the remote SSH server"
+          required: false
+          valueType: encrypted
+          defaultValue: ""
+        "pollCommand":
+          description: The command string to send to the remote SSH server
+          bind-to-exchange: true
+          required: true
+          type: string
+        "timeout":
+          description: "The timeout in milliseconds to wait in establishing the remote SSH server connection"
+          required: false
+          type: long
+        "destinationServers":
+          description: "List of servers to send the pipeline output to"
+          bind-to-exchange: true
+          required: true
+          type: "array"
+        "blankPlaceholder":
+          description: "String to replace blank values with"
+          required: false
+          defaultValue: "N/A"
+          type: "string"
+        "filters":
+          bind-to-exchange: true
+          description: "List of filters to match and format the data"
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "newlinePlaceholder":
+          description: "String to replace newline characters values with"
+          required: false
+          defaultValue: " "
+          type: "string"
+        "preprocessHeaders":
+          description: ""
+          required: false
+          defaultValue: "NOT_SET"
+          bind-to-exchange: true
+          type: "array"
+        "uiMessageLimit":
+          description: "Limit of failed/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+          type: "integer"
+      uiSchema:
+        type: stepper
+        ui:
+          height: 100%
+        properties:
+          source:
+            type: object
+            title: Source
+            properties:
+              schedule:
+                type: cron
+                title: schedule
+                defaultValue: 0 0/1 * * * ?
+              remote:
+                type: grid
+                ui:
+                  columns:
+                    - 15%
+                    - 55%
+                    - 30%
+                  alignRow: baseline
+                properties:
+                  username:
+                    type: string
+                    title: Username
+                    description: Username to use when connecting to the remote SSH server
+                  hostname:
+                    type: string
+                    title: hostname
+                    description: The hostname of the remote SSH server
+                    validation:
+                      required: true
+                      message: Please enter a valid hostname
+                  port:
+                    type: number
+                    title: port
+                    description: The port number of the remote SSH server
+                    defaultValue: 22
+                    validation:
+                      regex: ^[0-9]+$
+                      message: specify a port number >1024
+                      require:
+              pollCommand:
+                type: string
+                title: Command / Script
+                description: The command string to send to the remote SSH server
+                validation:
+                  required: true
+                  message: Please enter a command / script to run
+              remoteOptions:
+                type: expansion-panel
+                title: Optional Settings
+                ui:
+                  elevation: 2
+                properties:
+                  privateKeyAuth:
+                    type: switch
+                    title: Enable private key auth?
+                    defaultValue: false
+                  certResource:
+                    type: string
+                    title: Private Key File
+                    description: Full path to where the private key is stored
+                  certResourcePassword:
+                    type: password
+                    title: Private Key Password
+                    description: Password for the private key (Leave blank if a password is not required)
+                  password:
+                    type: password
+                    title: Password
+                    description: Password to use when connecting to the remote SSH server (Not required when using private key authentication)
+                  logReceived:
+                    defaultValue: true
+                    type: checkbox
+                    title: log messages received
+                  timeout:
+                    type: number
+                    title: timeout
+                    description: The timeout in milliseconds to wait in establishing the remote SSH server connection
+                    defaultValue: 30000
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: Limit of failed/success/processed/received messages to display on the UI
+          process:
+            type: object
+            title: Process
+            properties:
+              processOptions:
+                type: expansion-panel
+                title: Optional Settings
+                properties:
+                  processprop:
+                    type: grid
+                    ui:
+                      alignRow: baseline
+                    properties:
+                      newlinePlaceholder:
+                        type: string
+                        title: Newline Placeholder
+                        description: >-
+                          Replace newline characters with this value, defaults to a single space
+                      blankPlaceholder:
+                        type: string
+                        title: Blank Placeholder
+                        description: Replace blank keys with this value, defaults to a 'N/A'
+          target:
+            type: object
+            title: Target
+            properties:
+              destinationServers:
+                type: array
+                title: destination servers to forward messages to
+                ui:
+                  columns:
+                    - auto
+                    - auto
+                validation:
+                  message: "Please define one destination host"
+                  required: true
+                propertyTemplate:
+                  hostname:
+                    type: string
+                    title: hostname
+                    description: hostname or IP address pipeline forwards to
+                    validation:
+                      message: "Please specify a valid hostname"
+                      required: true
+                  port:
+                    type: number
+                    title: port
+                    description: port number
+                    validation:
+                      regex: ^[0-9]+$
+                      message: specify port number >1024
+              targetOptions:
+                type: expansion-panel
+                title: Optional Settings
+                properties:
+                  targetprop:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logProcessed:
+                        type: checkbox
+                        title: log transformed messages
+                        defaultValue: true
+                      logSuccess:
+                        defaultValue: true
+                        type: checkbox
+                        title: log forwarded messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages which failed to be forwarded
+          final:
+            type: typography
+            defaultValue: Pipeline updated
+      pipelineFlow:
+        - type: block
+          label: SSH Remote Command Output
+          icon: terminal
+        - type: pipe
+          children:
+            - type: arrow
+              forward: true
+              pullBackward: true
+            - type: block
+              label: filter
+              icon: filter
+            - type: arrow
+              forward: true
+            - type: block
+              label: transform
+              icon: shuffle
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          icon: arrow-down-to-square
+          label: "Forward to TCP Socket(s)"
+      exceptions:
+        # REF-EJC - Catch genric exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "Error processing data: ${exception}"
+            # REF-ONW - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
+            # REF-31X - Set body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"status": "ERROR", "requestId": "${exchangeId}", "message": "Error processing the body.\nPlease check message channel logs for more details." }'
+            - method: isslog
+              message: "parentId=${headers.parentId} | failed() | Error processing the body, please check the logs for more details. Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+        # REF-M0L - Catch No payload
+        - catches:
+            - "org.apache.integration_hub.NoTypeConversionAvailableException"
+            - "com.fasterxml.jackson.databind.exc.MismatchedInputException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "No content in the payload: ${exception}"
+            # REF-PO0 - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
+            # REF-31X - Set body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"status": "ERROR", "requestId": "${exchangeId}", "message": "Error no content in the body" }'
+            - method: isslog
+              message: "parentId=${headers.parentId} | failed() | No content in body. Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+        # REF-XAG - Failed to send on socket
+        - catches:
+            - "java.net.ConnectException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: "ERROR"
+              message: "Failed to send body to ${exchangeProperty.destinationHost}"
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[logFailed]} != null && ${exchangeProperty.placeholders[logFailed]} == true"
+                  steps:
+                    # REF-4KD - Write log message to “failed” file
+                    - method: isslog
+                      message: "parentId=${headers.parentId} | failed(${exchange.properties['filterExpression']}) | [dest=${exchangeProperty.destinationHost}, message=${exchange.properties['internalProcessedMessage']}]"
+                      type: failed
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logFailed]]
+                      writeToDatabase: $[[logFailed]]
+            - method: stop
+      steps:
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            fireNow: false
+            startDelayedSeconds: 0
+            triggerStartDelay: 0
+            cron: "$[[schedule]]"
+        # Set body to pollCommand for the ssh producer to use
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.placeholders[pollCommand]}"
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[privateKeyAuth]} == false"
+              steps:
+                - method: to
+                  component: ssh
+                  properties:
+                    host: $[[hostname]]
+                    port: $[[port]]
+                    username: $[[username]]
+                    password: $[[password]]
+          otherwise:
+            - method: to
+              component: ssh
+              properties:
+                host: $[[hostname]]
+                port: $[[port]]
+                username: $[[username]]
+                certResource: "file:$[[certResource]]"
+                certResourcePassword: $[[certResourcePassword]]
+        # REF-B9G - Store incoming message as "internalOrigMsg" property
+        - method: setProperty
+          key: internalOrigMsg
+          value:
+            type: "simple"
+            expression: "${body}"
+        # REF- - Set header "requestId" to the initial "parent" correlationId
+        - method: setHeader
+          key: parentId
+          value:
+            type: "simple"
+            expression: "${exchangeId}"
+        # REF- - Store headers in exchange
+        - method: process
+          classname: com.interlinksoftware.integrationhub.config.step.processor.HeadersToPropertyProcessor
+        # REF-L14 - IF logReceived is enabled
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[logReceived]} != null && ${exchangeProperty.placeholders[logReceived]} == true"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "Writing body to received file"
+                # REF-H9Z - Log message to file
+                - method: isslog
+                  message: "received | ${bodyAs(String)}"
+                  type: received
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logReceived]]
+                  writeToDatabase: $[[logReceived]]
+        # REF- - Set body to origin message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.internalOrigMsg}"
+        # REF-4IZ - Data decoding
+        - method: choice
+          when:
+            # REF-BEK
+            - predicate:
+                type: simple
+                expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from gzip"
+                - method: unmarshal
+                  type: gzip
+        # REF-1CY -  Datatype decoding
+        - method: choice
+          when:
+            # REF-0KL - Unmarshal JSON
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'json'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from json"
+                - method: unmarshal
+                  type: json
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${body.getClass().getName()} == 'java.lang.String'"
+                      steps:
+                        - method: log
+                          level: "DEBUG"
+                          message: "decoding from json string - ${body.getClass().getName()}"
+                        - method: unmarshal
+                          type: json
+            # REF-FU6 - Unmarshal XML
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'xml'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from xml"
+                - method: unmarshal
+                  type: xml
+            # REF-5JV - Unmarshal YAML
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'yaml'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from yaml"
+                - method: unmarshal
+                  type: yaml
+          # REF-SCT - If datatype is unknown
+          otherwise:
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[logReceived]} != null && ${exchangeProperty.placeholders[logReceived]} == true"
+                  steps:
+                    # REF- - Debug message
+                    - method: log
+                      level: "DEBUG"
+                      message: "datatype '${header.Content-Type}' unknown"
+                    # REF- - Debug message
+                    - method: log
+                      level: "DEBUG"
+                      message: "writing to received file"
+                    # REF-4UJ - Write log message to file
+                    - method: isslog
+                      message: "parentId=${headers.parentId} | missed(${header.Content-Type}) | ${bodyAs(String)}"
+                      type: received
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logReceived]]
+                      writeToDatabase: $[[logReceived]]
+        # REF-IS2 - If the message matches a filter key
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[filters]} != null && ${exchangeProperty.placeholders[filters]} != 'NOT_SET' && ${exchangeProperty.placeholders[filters]} is 'java.util.List' && ${exchangeProperty.placeholders[filters].size()} > 0"
+              steps:
+                - method: loop
+                  expression:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[filters].size()}"
+                  copy: true
+                  steps:
+                    # For some reason the Integration_HubLoopIndex header is not there in the groovy context
+                    - method: setProperty
+                      key: filterIndex
+                      value:
+                        type: "simple"
+                        expression: "${header.Integration_HubLoopIndex}"
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: groovy
+                            expression: |
+                              def loopIndex = exchange.properties.get('filterIndex');
+                              def filters = exchange.properties.get('placeholders').get('filters')
+                              def filterExpression = filters[loopIndex].get('expression')
+
+                              exchange.properties.put("filterExpression", filterExpression)
+
+                              filterExpression = exchange.properties.get("filterExpression")
+                              language = exchange.getContext().resolveLanguage("simple")
+                              predicate = language.createPredicate(filterExpression)
+                              return predicate.matches(exchange);
+                          steps:
+                            - method: log
+                              level: "DEBUG"
+                              message: "filters expression(${exchangeProperty.filterExpression}) matches"
+                            - method: setProperty
+                              key: filterCheck
+                              value:
+                                type: "constant"
+                                expression: true
+                            - method: setProperty
+                              key: filterFormat
+                              value:
+                                type: "simple"
+                                expression: "${exchangeProperty.placeholders[filters].get(${header.Integration_HubLoopIndex}).getOrDefault('format', 'NOT_SET')}"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: "simple"
+                                    expression: "${exchangeProperty.filterFormat.toString()} == 'NOT_SET'"
+                                  steps:
+                                    - method: setProperty
+                                      key: filterFormat
+                                      value:
+                                        type: "constant"
+                                        expression: "${auto}"
+                            - method: setProperty
+                              key: filterSplit
+                              value:
+                                type: "simple"
+                                expression: "${exchangeProperty.placeholders[filters].get(${header.Integration_HubLoopIndex}).getOrDefault('split', 'NOT_SET')}"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: "simple"
+                                    expression: "${exchangeProperty.filterSplit.toString()} == 'NOT_SET'"
+                                  steps:
+                                    - method: setProperty
+                                      key: filterSplit
+                                      value:
+                                        type: "constant"
+                                        expression: "${body}"
+                            - method: setProperty
+                              key: filterStringifedJsonFields
+                              value:
+                                type: "simple"
+                                expression: "${exchangeProperty.placeholders[filters].get(${header.Integration_HubLoopIndex}).getOrDefault('stringifedJsonFields', 'NOT_SET')}"
+                      otherwise:
+                        - method: log
+                          level: "DEBUG"
+                          message: "filters expression(${exchangeProperty.filterExpression}) does not match"
+                        - method: setProperty
+                          key: filterCheck
+                          value:
+                            type: groovy
+                            expression: |
+                              prop = exchange.properties.getOrDefault("filterCheck", "NOT_SET")
+                              if (prop == "NOT_SET") {
+                                return false;
+                              } else {
+                                return prop;
+                              }
+          otherwise:
+            - method: log
+              level: "DEBUG"
+              message: "No filters definitions"
+            - method: setProperty
+              key: filterCheck
+              value:
+                type: "constant"
+                expression: false
+        - method: choice
+          when:
+            - predicate:
+                type: "simple"
+                expression: "${exchangeProperty.filterCheck.toString()} =~ 'false'"
+              steps:
+                - method: setProperty
+                  key: filterFormat
+                  value:
+                    type: "constant"
+                    expression: "${auto}"
+                - method: setProperty
+                  key: filterExpression
+                  value:
+                    type: "constant"
+                    expression: "DEFAULT"
+                - method: setProperty
+                  key: filterSplit
+                  value:
+                    type: "constant"
+                    expression: "${body}"
+        # REF- - Debug message
+        - method: log
+          level: "DEBUG"
+          message: "body '${body}' has matched template statement '${exchangeProperty.filterExpression}'"
+        # REF-8R9 - Set property "internalMatchFound" to true
+        - method: setProperty
+          key: internalMatchFound
+          value:
+            type: "constant"
+            expression: true
+        # REF- - Debug message
+        - method: log
+          level: "DEBUG"
+          message: "splitting body using '${exchangeProperty.filterSplit}'"
+        # REF-SLB - Split payload if array
+        - method: split
+          aggregation-strategy:
+            type: collect-to-property
+          expressions:
+            - type: groovy
+              expression: |
+                filterSplitExpression = exchange.properties.get("filterSplit")
+                language = exchange.getContext().resolveLanguage("simple")
+                expression = language.createExpression(filterSplitExpression)
+                return expression.evaluate(exchange);
+          steps:
+            # REF- - Store split message as "internalSplitMsg" header
+            - method: setProperty
+              key: internalSplitMsg
+              value:
+                type: "simple"
+                expression: "${body}"
+            # REF- - Set Body to contents of property "internalSplitMsg"
+            - method: setBody
+              expression:
+                type: simple
+                expression: "${exchange.properties[internalSplitMsg]}"
+            # REF- - Restore original headers
+            - method: process
+              classname: com.interlinksoftware.integrationhub.config.step.processor.RestoreOriginHeadersProcessor
+            # REF- - Cleanse headers
+            - method: process
+              classname: com.interlinksoftware.integrationhub.config.step.processor.CleanseHeadersProcessor
+            # REF- - Store exchangeId as CorrelationId
+            - method: setHeader
+              key: correlationId
+              value:
+                type: simple
+                expression: "${exchangeId}"
+            - method: convertBodyTo
+              type: java.lang.String
+            # REF-QDZ - Set header "Integration_HubFreemarkerTemplate" to the matched template
+            - method: setHeader
+              key: Integration_HubFreemarkerTemplate
+              value:
+                type: "constant"
+                expression: |
+                  <@compress single_line=true>
+                    <#assign placeholder = "$[[blankPlaceholder]]">
+                    <#assign newline_placeholder = "$[[newlinePlaceholder]]">
+
+                    <#function sanitize sdata='null'>
+                        <#if sdata?length != 0>
+                          <#if sdata?is_number>
+                            <#return sdata?string.computer>
+                          <#elseif sdata?is_string>
+                            <#return sdata?replace('(\\r\\n)+|\\r+|\\n', newline_placeholder, 'r')>
+                          </#if>
+                        <#else>
+                            <#return "${placeholder}">
+                        </#if>
+                    </#function>
+                    "${sanitize(body)}"
+                  </@compress>
+            - method: setHeader
+              key: Integration_HubFreemarkerTemplate
+              value:
+                type: "simple"
+                expression: "${headers.Integration_HubFreemarkerTemplate}"
+            # REF-4A1 - Compile FTL template
+            - method: to
+              component: freemarker
+              properties:
+                resourceUri: dummy
+                allowTemplateFromHeader: true
+                allowContextMapAll: true
+            # Remove duplicate '|' characters from the body if any
+            - method: setProperty
+              key: bodyWithRemovedDuplicates
+              value:
+                type: groovy
+                expression: |
+                  return body.replace('| |', '|')
+            # REF-OHH - Set property "internalProcessedMessage" to bodyWithRemovedDuplicates
+            - method: setProperty
+              key: internalProcessedMessage
+              value:
+                type: "simple"
+                expression: "${exchange.properties.getOrDefault('bodyWithRemovedDuplicates')}"
+            # REF-3P0 - If logProcessed is enabled
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[logProcessed]} != null && ${exchangeProperty.placeholders[logProcessed]} == true"
+                  steps:
+                    # REF- - Debug message
+                    - method: log
+                      level: "DEBUG"
+                      message: "writing to proccessed file"
+                    # REF-4MH - Log message to file
+                    - method: isslog
+                      message: "parentId=${headers.parentId} | processed(${exchange.properties['filterExpression']}) | ${bodyAs(String)}"
+                      type: processed
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logProcessed]]
+                      writeToDatabase: $[[logProcessed]]
+            # REF-6CU - Loop over each BES host
+            - method: split
+              expressions:
+                - type: simple
+                  expression: "${exchangeProperty.placeholders[destinationServers]}"
+              steps:
+                # REF-JC9 - Set property "destinationHost" to the destination host and port
+                - method: setProperty
+                  key: destinationHost
+                  value:
+                    type: "simple"
+                    expression: "${body[hostname]}:${body[port]}"
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "sending body to ${exchangeProperty.destinationHost}"
+                # REF-AGS - Set body to the processed message
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: "${exchange.properties[internalProcessedMessage]}"
+                # # REF-OE1 - Send payload to socket
+                - method: dynamic-to
+                  expression: "netty:tcp://${exchange.properties[destinationHost]}?clientMode=true&sync=false&textline=true"
+                # REF-AGM - If log received is enabled
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[logSuccess]} != null && ${exchangeProperty.placeholders[logSuccess]} == true"
+                      steps:
+                        # REF- - Debug message
+                        - method: log
+                          level: "DEBUG"
+                          message: "writing to the success file"
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: "${exchange.properties[internalProcessedMessage]}"
+                        - method: isslog
+                          message: "parentId=${headers.parentId} | success | ${bodyAs(String)}"
+                          type: success
+                          queueSize: $[[uiMessageLimit]]
+                          writeToFile: $[[logSuccess]]
+                          writeToDatabase: $[[logSuccess]]
+            # REF- - Restore headers from exchange
+            - method: process
+              classname: com.interlinksoftware.integrationhub.config.step.processor.RestoreOriginHeadersProcessor
+            # REF- - Set header "Integration_HubFreemarkerTemplate" to the result template
+            - method: setHeader
+              key: Integration_HubFreemarkerTemplate
+              value:
+                type: "constant"
+                expression: |
+                  <@compress single_line=true>
+                    {
+                      "status": "OK",
+                      "requestId": "${headers.parentId}",
+                      "results": [
+
+                        <#if exchange.properties.AggregationResult??>
+                          <#list exchange.properties.AggregationResult as result>
+                            ${result.body!""}<#if result?has_next>,</#if>
+                          </#list>
+                        </#if>
+
+                      ]
+                    }
+                  </@compress>
+            # REF- - Compile FTL template
+            - method: to
+              component: freemarker
+              properties:
+                resourceUri: dummy
+                allowTemplateFromHeader: true
+                allowContextMapAll: true
+            # REF- - Set content type header
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
