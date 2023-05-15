@@ -1,0 +1,196 @@
+shared:
+  templates:
+    "[file-watch-to-command~2.0]":
+      version: "2.0"
+      minimumCompatibilityVersion: 2.1.0
+      description: "The file-watch-to-command template provides functionality to execute a command when a CREATE | MODIFY | DELETE event occurs on a file or files within a specified location"
+      placeholders:
+        "path":
+          description: "The path to the file that you wish to listen for modification events on"
+          required: true
+          type: "string"
+        "antInclude":
+          description: "ANT style pattern to match files. Pattern must be relative (not starting with slash)"
+          required: false
+          type: "string"
+          defaultValue: "**"
+        "autoCreate":
+          description: "Auto create directory if it does not exist"
+          required: false
+          type: "boolean"
+          defaultValue: false
+        "events":
+          description: "Comma separated list of events to watch"
+          required: false
+          type: "string"
+          defaultValue: "CREATE"
+        "command":
+          description: "The command to be executed"
+          required: true
+          type: "string"
+          defaultValue: ""
+        "arguments":
+          description: "arguments passed to the command (whitespace separated)"
+          required: false
+          type: "string"
+          defaultValue: ""
+        "timeout":
+          description: "The number of milliseconds to wait before terminating the command (default: 1 hour)"
+          required: false
+          type: "long"
+          defaultValue: 3600000
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "uiMessageLimit":
+          description: "Limit of failed/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+          type: "integer"
+      uiSchema:
+        type: object
+        properties:
+          pathProp:
+            type: grid
+            ui:
+              columns:
+                - 80%
+                - 20%
+              alignRow: baseline
+            properties:
+              path:
+                type: text
+                title: path/to/file
+                description: Path to the file OR directory that you wish to monitor
+                validation:
+                  message: required
+              autoCreate:
+                type: checkbox
+                title: Auto create directory if it does not exist
+          command:
+            type: text
+            title: Command/Script
+            description: Absolute path to the command/script to execute
+            validation:
+              message: required
+          options:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              antInclude:
+                type: text
+                title: Pattern
+                description: "ANT style pattern to match files (default: **)"
+                help:
+                  icon: info-circle
+                  content: "### ANT String Syntax\n\n    *               matches zero or more characters.\n    ?               matches exactly one character.\n    {ab,cd,ef}      matches exactly one of the \"parts\" provided.\n    [abc]           matches a range of characters.\n    !(ab|cd|ef)     matches anything that does not directly match any of the patterns in the parentheses.\n    ?(ab|cd|ef)     matches zero or one occurrence of the patterns given. \n    +(ab|cd|ef)     allows for one or more occurrences of the patterns to be matched.\n    *(ab|cd|ef)     matches zero or more occurrences of the patterns listed. \n    @(ab|cd|ef)     ensures that exactly one of the patterns provided matches.\n    **              matches zero or more directories and subdirectories. This allows for recursive directory searching easily. "
+              arguments:
+                type: text
+                title: Arguments
+                description: Arguments to be passed to the command/script
+              timeout:
+                type: text
+                title: timeout (milliseconds)
+                description: "The number of milliseconds to wait before terminating the command (default: 1 hour)"
+              events:
+                type: text
+                title: Events
+                description: "Comma separated list of events to listen for (default: CREATE)"
+              uiMessageLimit:
+                type: number
+                title: UI Message Limit
+                defaultValue: 200
+                description: "Limit of failed/dropped/success/processed/received messages to display on the UI"
+              logProp:
+                type: grid
+                ui:
+                  columns:
+                    - auto
+                    - auto
+                  alignRow: baseline
+                properties:
+                  logProcessed:
+                    type: checkbox
+                    title: log processed messages
+                    defaultValue: true
+                  logFailed:
+                    defaultValue: true
+                    type: checkbox
+                    title: log failed messages
+      pipelineFlow:
+        - type: block
+          label: File Modification Event
+          icon: file
+        - type: arrow
+          forward: true
+        - type: block
+          label: "Execute Command/Script"
+          icon: play
+      steps:
+        - method: from
+          component: file-watch
+          properties:
+            path: "$[[path]]"
+            antInclude: "$[[antInclude]]"
+            autoCreate: "$[[autoCreate]]"
+            events: "$[[events]]"
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+        - method: setBody
+          expression:
+            type: simple
+            expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | START: command=$[[command]] arguments=$[[arguments]]"
+        - method: isslog
+          message: "${body}"
+          type: processed
+          queueSize: $[[uiMessageLimit]]
+          writeToFile: $[[logProcessed]]
+          writeToDatabase: $[[logProcessed]]
+        - method: to
+          component: exec
+          properties:
+            executable: "$[[command]]"
+            args: "$[[arguments]]"
+            workingDir: "$[[envvar.iss.config.dir]]"
+            timeout: $[[timeout]]
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${headers.Integration_HubExecExitValue} != null && ${headers.Integration_HubExecExitValue} == null || ${headers.Integration_HubExecExitValue} != 0"
+              steps:
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | FINISH: Command Failed command=$[[command]] arguments=$[[arguments]] returnCode=${headers.Integration_HubExecExitValue} response=${body}"
+                - method: isslog
+                  message: "${body}"
+                  type: failed
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logFailed]]
+                  writeToDatabase: $[[logProcessed]]
+          otherwise:
+            - method: setBody
+              expression:
+                type: simple
+                expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | FINISH: command=$[[command]] arguments=$[[arguments]] returnCode=${headers.Integration_HubExecExitValue} response=${body}"
+            - method: isslog
+              message: "${body}"
+              type: processed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logProcessed]]
+              writeToDatabase: $[[logProcessed]]
