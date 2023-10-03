@@ -122,26 +122,29 @@ shared:
           required: false
           defaultValue: "#IssSslConfig"
           type: "string"
+
         "authEnabled":
           description: "Toggle basic authentication"
           required: false
           defaultValue: "false"
           type: "boolean"
+
         "users":
           description: "Map of usernames and passwords"
           required: false
           type: "map"
           defaultValue: ""
+
         "uiMessageLimit":
           description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
           required: false
-          defaultValue: "50"
+          defaultValue: "200"
           type: "integer"
 
       uiSchema:
         type: stepper
         ui:
-          height: 700
+          height: 100%
         properties:
           source:
             type: object

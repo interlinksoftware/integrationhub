@@ -13,7 +13,7 @@ The webhook-to-tcp template provides a secure HTTP endpoint that 3rd Party appli
 Download the version of the webhook-to-tcp template that you require from github to your integration-hub server.
 
 Run the following to install directly from Github:
-<font size="1">
+<font size="2">
 ```bash
 ih-cli template import \
   https://raw.githubusercontent.com/interlinksoftware/integrationhub/main/templates/webhook-to-tcp/<version>/webhook-to-tcp~<version>.yml
@@ -21,10 +21,12 @@ ih-cli template import \
   </font>
   
 If your server does not have access to Github you can download the file, copy to the server and place it directly into the ```integration-hub/config/templates``` directory or import via the integration-hub cli:
+<font size="2">
 ```bash
 ih-cli template import /path/to/file/webhook-to-tcp~<version>.yml
 ```
 ***
+</font>
 
 ## Configure
 
@@ -44,7 +46,7 @@ Where a pipeline feeds alerts to a BES tcp message channel, a message channel ma
 
 ### Creating a pipeline
 
-You will see the template listed within web-based application after you have installedt the templates. Define a pipeline as you would through the web interface.
+You will see the template listed within web-based application after you have installed the templates. Define a pipeline as you would through the web interface.
 
 ## Migrating from piHTTP to webhook-to-tcp based pipeline
 
