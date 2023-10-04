@@ -1,44 +1,69 @@
-# file-watch-to-command v2.0
+<p align="center">
+<img src="../../../assets/images/interlink-software.png" />
+</p>
+<br><br>
 
-## Release Notes
+# File-Watch to Command <small>(file-watch-to-command v2.0)</small>
 
-| TicketId | Description |
-| -------- | ----------- |
+**Important:** _These instructions assume you have Integration Hub v2.1+ installed_
 
-## Format
+- For help installing [Integration Hub](https://docs.interlinksoftware.com/ih/latest/index.html), see the [Installation Guide](https://docs.interlinksoftware.com/ih/latest/install/install_overview.html).
 
-```yml
-app:
-  pipelines:
-    file-watch-to-command-pipeline:
-      steps:
-        - method: pipeline-template
-          ref: file-watch-to-command
-          properties:
-            path: /path/to/file/or/directory
-            autoCreate: true
-            command: /command/or/script/to/execute
-            arguments: <arguments_to_pass_to_the_script_or_command>
-            events: <Events to listen for (CREATE | MODIFY | DELETE)>
-```
+## Overview
 
----
+The file-watch-to-command template provides functionality to execute a command when a CREATE | MODIFY | DELETE event occurs on a file or files within a specified location
 
-## Pipeline Properties
+## Prerequisites
 
-| Property                   | Default | Description                                                                                                              |
-| -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **\*_pipelines: "[xxx]"_** |         | Pipeline name - must match the newly created pipeline yaml file                                                          |
-| **\*_ref_**                |         | Reference to the template including version                                                                              |
-| **\*_path_**               |         | The path to the file that you wish to listen for modification events on                                                  |
-| _antInclude_               | \*\*    | ANT style pattern to match files. **Pattern must be relative (not starting with slash)**                                 |
-| _autoCreate_               | false   | Set to **true** if you want the pipeline to automatically create the directory specified in **path**                     |
-| _events_                   | CREATE  | Comma separated list of events to listen for i.e - (CREATE, MODIFY, DELETE)                                              |
-| **\*_command_**            |         | The full path to the command or script you wish to be executed once an event is detected                                 |
-| _arguments_                |         | Arguments that you wish to pass to the command or script                                                                 |
-| _timeout_                  | 3600000 | The number in milliseconds to wait before terminating the command (**default: 1 hour**)                                  |
-| _logProcessed_             | true    | To log the data once processed into its final form. _**The received file is logs/<pipeline name>-<yyyymmdd>.processed**_ |
-| _logFailed_                | true    | To log all failed data. _The failed log file is **logs/<pipeline name>-<yyyymmdd>.failed**_                              |
-| _uiMessageLimit_           | 200     | Limit of failed/success/processed/received messages to display in the UI                                                 |
+Before creating the pipeline you will need have the following configured:
 
-**_\*mandatory property_**
+- The template is installed and is available within the user interface. Install directly from github or transfer the template to your Integration Hub server.
+
+  - Installing directly from Github:
+
+    ```
+    ih-cli template import https://raw.githubusercontent.com/interlinksoftware/integrationhub/main/templates/file-watch-to-command/<version>/readme.md
+    ```
+
+  - Install from local file. Place the template file in the `integration-hub/config/templates` directory, then run:
+
+    ```
+    ih-cli template import <path to template file>
+    ```
+
+  **Note:** _You will need to reload the configuration after importing a template before you can use it, to do this run:_
+
+  ```
+  ih-cli config reload
+  ```
+
+## Configuration
+
+From the Pipelines section of the user interface you can create, update and delete pipelines. The following properties can be set for your pipeline.
+
+<img src="../../../assets/images/file-watch-to-command/2.0/create_pipeline.jpg" width="800" />
+
+<br />
+
+| Property                                     | Description                                            |
+| :------------------------------------------- | :----------------------------------------------------- |
+| `path/to/file`                               | Path to the file OR directory that you want to monitor |
+| `Auto create directory if it does not exist` | Set to `true` to enable this functionality             |
+| `Command / Script`                           | Absolute path to the command / script to execute       |
+
+### Optional Settings
+
+| Property           | Description                                                                      |
+| :----------------- | :------------------------------------------------------------------------------- |
+| `Pattern`          | ANT style pattern to match files (default: \*\*)                                 |
+| `Arguments`        | Arguments to be passed to the command / script                                   |
+| `Timeout`          | The number of milliseconds to wait before terminating the command                |
+| `Events`           | Comma separated list of events to listen for (CREATE \| MODIFY \| DELETE)        |
+| `UI Message Limit` | Limit of failed/dropped/success/processed/received messages to display in the UI |
+
+## Logging
+
+| Property       | Description                                                                                                                             |
+| :------------- | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| `logProcessed` | If enabled all messages processed will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property        |
+| `logFailed`    | If enabled all messages that have failed will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property |
