@@ -1,34 +1,54 @@
-# batchjob v2.1 - Pipelines
+<p align="center">
+<img src="../../../assets/images/interlink-software.png" />
+</p>
+<br><br>
 
-## Format
+# Batchjob (batchjob v2.1)
 
+**Important:** _These instructions assume you have Integration Hub v2.1+ installed_
 
-```yml
-app:
-  pipelines:
-    "[batch-copy-files]":
-      steps:
-      - method: pipeline-template
-        ref: "batchjob~2.1"
-        properties:
-          schedule: 0 30 16 1/1 * ? *
-          description: "Copy processing files at 4:30pm"
-          command: /opt/batch/scripts/copy-files.sh
-          args: "rhdev01 rhuat01"
-          timeout: "60000"
-```
+- For help installing [Integration Hub](https://docs.interlinksoftware.com/ih/latest/index.html), see the [Installation Guide](https://docs.interlinksoftware.com/ih/latest/install/install_overview.html).
 
-***
+## Overview
 
-## Properties
+The batchjob template allows the execution of non-interactive commands and scripts against a schedule
 
-| Property | Default | Description |
-|---|---|---|
-|***schedule** | | The cron expression that defines the execution schedule for this pipeline|
-|***description** | | A description of the batchjob |
-|***command** | | The absolute path of the command to be executed |
-|args| | Arguments passed to the command (whitespace separated) |
-|timeout| 3600000| The number of milliseconds to wait before terminating the command default: 1 hour)|
+## Prerequisites
 
-**_*mandatory property_**
-***
+Before creating the pipeline you will need have the following configured:
+
+- The template is installed and is available within the user interface. Install directly from github or transfer the template to your Integration Hub server.
+
+  - Installing directly from Github:
+
+    ```
+    ih-cli template import https://raw.githubusercontent.com/interlinksoftware/integrationhub/main/templates/batchjob/<version>/readme.md
+    ```
+
+  - Install from local file. Place the template file in the `integration-hub/config/templates` directory, then run:
+
+    ```
+    ih-cli template import <path to template file>
+    ```
+
+  **Note:** _You will need to reload the configuration after importing a template before you can use it, to do this run:_
+
+  ```
+  ih-cli config reload
+  ```
+
+## Configuration
+
+From the Pipelines section of the user interface you can create, update and delete pipelines. The following properties can be set for your pipeline.
+
+<img src="../../../assets/images/batchjob/create_pipeline.jpg" width="800" />
+
+<br />
+
+| Parameter          | Type                                                                                |
+| :----------------- | :---------------------------------------------------------------------------------- |
+| `Cron Expression`  | The cron expression that defines the execution schedule for this pipeline           |
+| `Description`      | A description describing the purpose of this pipeline                               |
+| `Command / Script` | Absolute path to the command / script to execute                                    |
+| `Arguments`        | Arguments to be passed to the command / script                                      |
+| `Seconds`          | The number of milliseconds to wait before terminating the command (default: 1 hour) |
