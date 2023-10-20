@@ -217,7 +217,7 @@ shared:
                             help:
                               icon: info-circle
                               content: |-
-                                ### Desintation Properties
+                                ### Destination Properties
 
                                   The following properties can be specified for the destination.
 

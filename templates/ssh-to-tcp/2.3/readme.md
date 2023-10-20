@@ -51,7 +51,7 @@ From the Pipelines section of the user interface you can create, update and dele
 | `Port`                            | The port that the remote server's SSH service is listening on      |
 | `Username`                        | Username to use when authenticating against the remote SSH server  |
 | `Password`                        | Password to use when authenticating against the remote SSH server  |
-| `Use private key authenitcation?` | Toggle for switching between password / private key authentication |
+| `Use private key authentication?` | Toggle for switching between password / private key authentication |
 
 <br />
 
@@ -222,7 +222,7 @@ The filter and formatting logic grants us the ability to customize the appearanc
 
 #### Format
 
-The format output redfines how you wish to transform the message
+The format output redefines how you wish to transform the message
 
 <br />
 
@@ -303,7 +303,7 @@ For example, using the syntax: `UserAlert \${auto}` would yield the following ou
 <br />
     
 ```
-The format output redfines how you wish to transform the message
+The format output redefines how you wish to transform the message
 ```
     
 <br />
@@ -464,6 +464,6 @@ This instructs the pipeline to split the payload at every newline character.
 | `logReceived`    | If enabled all messages received will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property                   |
 | `logDropped`     | If enabled all messages dropped will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property                    |
 | `logProcessed`   | If enabled all messages processed will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property                  |
-| `logSuccess`     | If enabled all messages that were successfuly sent will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property |
+| `logSuccess`     | If enabled all messages that were successfully sent will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property |
 | `logFailed`      | If enabled all messages that have failed will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property           |
 | `uiMessageLimit` | Specifies the maximum number of messages to store for this pipeline, the default is `200`                                                         |

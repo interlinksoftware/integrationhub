@@ -400,7 +400,7 @@ shared:
                             help:
                               icon: info-circle
                               content: |-
-                                ### Desintation Properties
+                                ### Destination Properties
 
                                   The following properties can be specified for the destination.
 
@@ -940,7 +940,7 @@ shared:
               writeToFile: $[[logFailed]]
               writeToDatabase: $[[logFailed]]
             - method: stop
-        # REF-EJC - Catch genric exception
+        # REF-EJC - Catch generic exception
         - catches:
             - "java.lang.Exception"
           handled:
@@ -1834,7 +1834,7 @@ shared:
                     # REF- - Debug message
                     - method: log
                       level: "DEBUG"
-                      message: "writing to proccessed file"
+                      message: "writing to processed file"
                     # REF-4MH - Log message to file
                     - method: isslog
                       message: "parentId=${exchange.properties[parentId]} | processed(${exchange.properties['filterExpression']}) | ${bodyAs(String)}"

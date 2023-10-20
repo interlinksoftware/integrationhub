@@ -49,7 +49,7 @@ shared:
           type: "string"
 
         "checkpointDefault":
-          description: "A default value to used when the piepline is first run or if a value cannot be determined"
+          description: "A default value to used when the pipeline is first run or if a value cannot be determined"
           required: false
           type: "string"
 
@@ -144,7 +144,7 @@ shared:
                       icon: info-circle
                       content: |-
                         # Source SQL statement
-                        The SQL statement to execute agaionst the source DataSource
+                        The SQL statement to execute against the source DataSource
 
                         ##### How to specify a checkpoint value in the source SQL statement
 
@@ -195,7 +195,7 @@ shared:
                             Checkpoint Name - A unique name for this checkpoint field
                             Key             - The field returned from the SQL source statement whose value is stored
                             Type            - The SQL data type (ie: date, integer, text)
-                            Default Value   - A default value to used when the piepline is first run or if a value cannot be determined
+                            Default Value   - A default value to used when the pipeline is first run or if a value cannot be determined
 
                         In the example below, the checkpoint key is the alertid, which ensures only rows where the alertid is greater than the previous execution are returned.
 
@@ -261,7 +261,7 @@ shared:
           icon: database
           label: Target Datasource
       exceptions:
-        # REF-EJC - Catch genric exception
+        # REF-EJC - Catch generic exception
         - catches:
             - "java.lang.Exception"
           handled:

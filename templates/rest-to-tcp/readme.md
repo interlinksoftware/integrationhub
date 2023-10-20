@@ -47,7 +47,7 @@ Prior to using this template you must have already defined a REST datasource tha
       </tr>
       <tr>
         <td><code>Authorization Type</code></td>
-        <td>Specify athentication method to use<br><br>
+        <td>Specify authentication method to use<br><br>
           <details>
             <summary>Basic Auth</summary>
             <table>
