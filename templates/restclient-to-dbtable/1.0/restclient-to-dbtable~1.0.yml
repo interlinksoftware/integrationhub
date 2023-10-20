@@ -1,0 +1,924 @@
+shared:
+  templates:
+    "[restclient-to-dbtable~1.0]":
+      version: 1.0
+      minimumCompatibilityVersion: 2.2.0
+      description: "The restclient-to-dbtable template provides functionality to perform REST queries and store retreived records in a database table, via an integration-hub pipeline."
+      placeholders:
+        "restDataSource":
+          description: "The REST dataSource for the connection"
+          required: true
+        "schedule":
+          description: "The cron string that defines the schedule for this pipeline"
+          required: false
+          defaultValue: "0 * * ? * *"
+        "endpoints":
+          description: "List of endpoints to request data from"
+          bind-to-exchange: true
+        "connectTimeout":
+          description: "Duration in seconds to timeout the request"
+          required: false
+          defaultValue: 10000
+        "connectionRequestTimeout":
+          description: "Duration in seconds to stop the request"
+          required: false
+          defaultValue: 10000
+        "blankPlaceholder":
+          description: "String to replace blank values with"
+          required: false
+          defaultValue: "N/A"
+        "targetDatabase":
+          description: "The data source name to use for the pipeline output"
+          required: true
+        "logDropped":
+          description: "To log all dropped data set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logProcessed":
+          description: "To log all target SQL statements set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "50"
+          type: "integer"
+
+      uiSchema:
+        type: object
+        properties:
+          connection:
+            type: object
+            title: Pipeline Definitions
+            help:
+              icon: info-circle
+              content: |-
+                | property|description|
+                |-----------------|------------------------------------------------------------------------------|
+                | Cron Schedule   | The cron expression that defines the execution schedule for this pipeline |
+                | REST Datasource | The pre-defined REST datasource to use for querying |
+                | Target Database | The pre-defined database that will contain the created table |
+                | Request Headers | Specify any request headers that need to be present on the REST API calls |
+                | Body Payload | Specify any body data that need to be passed on the REST API calls |
+
+            properties:
+              connection:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  host:
+                    type: grid
+                    ui:
+                      columns:
+                        - 30%
+                        - auto
+                      areas:
+                        - scheduleLabel schedule
+                        - restDataSourceLabel restDataSource
+                        - targetDatabaseLabel targetDatabase
+                        - headersLabel headers
+                        - payloadLabel payload
+                      alignRow: baseline
+                    properties:
+                      restDataSourceLabel:
+                        type: typography
+                        defaultValue: REST Datasource
+                      restDataSource:
+                        type: datasource
+                        ui:
+                          dataSourceType: rest
+                      scheduleLabel:
+                        type: typography
+                        defaultValue: Cron Schedule
+                      schedule:
+                        type: cron
+                        title: "Cron Expression"
+                      targetDatabaseLabel:
+                        type: typography
+                        defaultValue: Target Database
+                      targetDatabase:
+                        type: datasource
+                        ui:
+                          dataSourceType: jdbc
+                      headersLabel:
+                        type: typography
+                        defaultValue: Request Headers
+                      headers:
+                        type: map
+                        title: Headers
+                        ui:
+                          keyPlaceholder: Header Name
+                        valueSchema:
+                          type: text
+                          ui:
+                            placeholder: Header Value
+
+          sync:
+            type: object
+            title: Data Synchronization
+            help:
+              icon: info-circle
+              content: |-
+                You can specify multiple requests within the one pipeline, to add another request click the **<code>+SYNC DEFINITION</code>**  button.
+
+                <table>
+                  <tr>
+                    <th>Property</th>
+                    <th>Description</th>
+                  </tr>
+                  <tr>
+                    <td><code>method</code></td>
+                    <td>The HTTP method to use GET, PUT or POST</td>
+                  </tr>
+                  <tr>
+                    <td><code>url_path</code></td>
+                    <td>The url path for this definition, note that the full url path is a combination of the REST Datasource path and this value</td>
+                  </tr>
+                  <tr>
+                    <td><code>database_table</code></td>
+                    <td>The name of the table that you want to create that will hold your data, ensure that it does not already exist</td>
+                  </tr>
+                  <tr>
+                    <td><code>data_array_field</code></td>
+                    <td>The name of the object that contains the records that you want to process, this should point to an array of objects.<br>Examples:<br><br>
+                    set to <b><i><code>records</code></i></b> for payload<br>
+                    <code>
+                    {<br>
+                    &nbsp;&nbsp;"id": 1234,<br>
+                    &nbsp;&nbsp;"records": [<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;{ "rec_id": 1, "name": "test1" },<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;{ "rec_id": 2, "name": "test2" }<br>
+                    &nbsp;&nbsp;]<br>
+                }    </code><br><br>
+                    leave empty if an array is returned<br>
+                    <code>
+                [<br>
+                    &nbsp;&nbsp;{ "rec_id": 1, "name": "test1" },<br>
+                    &nbsp;&nbsp;{ "rec_id": 2, "name": "test2" }<br>
+                ]
+                </td>
+                  </tr>
+                  <tr>
+                    <td>mappings</td>
+                    <td>This section is used to map fields between received from the REST API response to database table fieldnames. You must specify each field that you wish to store, to add another field click the <b><code>+ADD FIELD</code></b>  button<br><br>
+                    <table>
+                      <tr>
+                        <td><code>rest_field_name</code></td>
+                        <td>The field in the REST response that you wish to map</td>
+                      </tr>
+                      <tr>
+                        <td><code>db_field_type</code></td>
+                        <td>The field type you want to convert the in the <code>rest_field_name</code> to, valid entries are <code>text</code>, <code>timestamp</code> or <code>number</code></td>
+                      </tr>
+                      <tr>
+                        <td><code>db_field_name</code></td>
+                        <td>The column name to be mapped to in the <code>database_table</code></td>
+                      </tr>
+                    </table>
+                    </td>
+                  </tr>
+                </table>
+
+            properties:
+              endpoints:
+                type: array
+                ui:
+                  columns:
+                    - 15%
+                    - 15%
+                    - 15%
+                    - 15%
+                    - 15%
+                    - 22%
+                  addLabel: sync definition
+                  areas:
+                    - method path path path path path
+                    - payload payload payload payload payload payload
+                    - tablename tablename data_array data_array  . .
+                    - fields fields fields fields fields fields
+                propertyTemplate:
+                  payload:
+                    type: string
+                    title: Request Payload
+                    defaultValue: ""
+                  method:
+                    type: select
+                    title: method
+                    defaultValue: GET
+                    ui:
+                      options:
+                        - GET
+                        - POST
+                        - PUT
+                  path:
+                    type: string
+                    title: Url Path
+                  tablename:
+                    type: string
+                    title: DB Table
+                  data_array:
+                    type: string
+                    defaultValue: ""
+                    title: Data Array Field
+                  fields:
+                    type: array
+                    ui:
+                      columns:
+                        - 35%
+                        - 20%
+                        - 35%
+                      addLabel: add table field
+                    propertyTemplate:
+                      name:
+                        type: string
+                        title: rest_field_name
+                      type:
+                        type: select
+                        title: db_field_type
+                        defaultValue: text
+                        ui:
+                          options:
+                            - text
+                            - timestamp
+                            - number
+                      column:
+                        type: string
+                        title: db_field_name
+
+      pipelineFlow:
+
+        - type: block
+          label: Webservice REST
+          icon: cloud
+        - type: arrow
+          forward: true
+        - type: block
+          icon: database
+          label: Database Table
+
+      exceptions:
+
+        - catches:
+            - "org.apache.camel.http.common.HttpOperationFailedException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed to make request: ${exception.stacktrace}"
+            - method: isslog
+              message: "failed | Failed to make request: ${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+        - catches:
+            - "javax.net.ssl.SSLHandshakeException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed to make request: ${exception.stacktrace}"
+            - method: isslog
+              message: "failed | Failed to make request: ${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed with exception: ${exception.stacktrace}"
+            - method: isslog
+              message: "failed | Failed with exception: ${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+
+      steps:
+        # REF- - From defined schedule
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            cron: "$[[schedule]]"
+            startDelayedSeconds: 0
+            triggerStartDelay: 0
+
+        # REF- - Remove all headers
+        - method: removeHeaders
+          pattern: "*"
+
+        # REF- - Store exchangeId as CorrelationId
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+
+        # REF- - Set the body to the defined headers
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.placeholders[headers]}"
+
+        # REF- - Convert the body to headers
+        - method: process
+          classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+
+        # REF- - Loop over each defined endpoint
+        - method: split
+          expressions:
+          - type: simple
+            expression: "${exchangeProperty.placeholders[endpoints]}"
+          steps:
+
+          # REF-B9G - Store config body
+          - method: setProperty
+            key: endpointBody
+            value:
+              type: "simple"
+              expression: "${body}"
+
+          - method: setProperty
+            key: tablename
+            value:
+              type: "simple"
+              expression: "${body[tablename]}"
+
+          - method: setProperty
+            key: createTable
+            value:
+              type: groovy
+              expression: |
+                    def sql = "CREATE TABLE IF NOT EXISTS \"" + body["tablename"] + "\" (inserted_at timestamp default now(), parent_id character varying"
+                    body["fields"].each { key, value ->
+                      println("createTable: found $key: $value type="+value.getClass())
+                      sql = sql + ", " + value["column"] + " " + value["type"]
+                    }
+                    sql = sql + ", PRIMARY KEY (inserted_at, parent_id))"
+                    println "createTable: definition  = "+sql
+                    return sql
+
+          - method: setProperty
+            key: createTableTmp
+            value:
+              type: groovy
+              expression: |
+                    def tmp_sql = "CREATE TABLE IF NOT EXISTS \"" + body["tablename"] + "_tmp\" (inserted_at timestamp default now(), parent_id character varying"
+                    body["fields"].each { key, value ->
+                      println("createTableTmp: found $key: $value type="+value.getClass())
+                      tmp_sql = tmp_sql + ", " + value["column"] + " " + value["type"]
+                    }
+                    tmp_sql = tmp_sql + ", PRIMARY KEY (inserted_at, parent_id))"
+                    println "createTableTmp: definition = "+tmp_sql
+                    return tmp_sql
+
+          - method: setProperty
+            key: dropTable
+            value:
+              type: groovy
+              expression: |
+                    def sql = "DROP TABLE \"" + body["tablename"] + "\""
+                    println "dropTable: definition = "+sql
+                    return sql
+
+          - method: setProperty
+            key: renameTable
+            value:
+              type: groovy
+              expression: |
+                    def sql = "ALTER TABLE \"" + body["tablename"] + "_tmp\" RENAME TO \"" + body["tablename"] + "\""
+                    println "DEBUG setting renameTable = "+sql
+                    return sql
+
+          - method: setProperty
+            key: targetSqlStatement
+            value:
+              type: groovy
+              expression: |
+                    def fields_sql = "INSERT INTO \"" + body["tablename"] +"_tmp\" (parent_id"
+                    def values_sql = "(:?parentId"
+                    body["fields"].each { key, value ->
+                      fields_sql = " " + fields_sql + ", " + value["column"]
+                      values_sql = " " + values_sql + ", :?" + value["name"] + "::" + value["type"]
+                    }
+                    def sql = fields_sql + ") VALUES "+ values_sql + ")"
+                    return sql
+
+          # REF- - Set the HTTP method for the request
+          - method: setHeader
+            key: CamelHttpMethod
+            value:
+              type: simple
+              expression: "${body[method]}"
+
+          # REF- - Store the endpoint level headers as a property
+          - method: setProperty
+            key: requestHeaders
+            value:
+              type: simple
+              expression: "${body[headers]}"
+
+          # REF- - Set the endpoint payload to a property
+          - method: setProperty
+            key: payload
+            value:
+              type: simple
+              expression: "${body[payload]}"
+
+          # REF- - Set header "CamelFreemarkerTemplate" to the SQL statement
+          # This is to populate the URL with any checkpoint references
+          - method: setHeader
+            key: CamelFreemarkerTemplate
+            value:
+              type: "simple"
+              expression: "${body[path]}"
+
+          # REF- - Field containing array of data to be processed
+          - method: setHeader
+            key: transformField
+            value:
+              type: simple
+              expression: "${body[data_array]}"
+
+          # REF- - Compile FTL template
+          - method: to
+            component: freemarker
+            properties:
+              resourceUri: dummy
+              allowTemplateFromHeader: true
+              allowContextMapAll: true
+
+          # REF- - Set the endpoint URL
+          - method: setHeader
+            key: CamelHttpPath
+            value:
+              type: simple
+              expression: "${body}"
+
+          # REF- - Convert the body to headers
+          - method: process
+            classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+
+          # REF- - Set header "CamelFreemarkerTemplate" to the SQL statement
+          # This is to update the payload to contain any checkpoint references
+          - method: setHeader
+            key: CamelFreemarkerTemplate
+            value:
+              type: "simple"
+              expression: "${exchangeProperty.payload}"
+
+          # REF- - Compile FTL template
+          - method: to
+            component: freemarker
+            properties:
+              resourceUri: dummy
+              allowTemplateFromHeader: true
+              allowContextMapAll: true
+
+          - method: to
+            component: http
+            properties:
+              getWithBody: true
+              dataSource: "$[[restDataSource]]"
+              connectTimeout: $[[connectTimeout]]
+              connectionRequestTimeout: $[[connectionRequestTimeout]]
+
+          # REF- - Set property "internalOriginMessage" to body
+          - method: setProperty
+            key: internalOrigMsg
+            value:
+              type: "simple"
+              expression: "${body}"
+
+          # REF- - Set header "requestId" to the initial "parent" correlationId
+          - method: setHeader
+            key: parentId
+            value:
+              type: "simple"
+              expression: "${exchangeId}"
+
+          # REF- - Store headers in exchange
+          - method: process
+            classname: com.interlinksoftware.integrationhub.config.step.processor.HeadersToPropertyProcessor
+
+          # REF-L14 - IF logReceived is enabled
+          - method: choice
+            when:
+              - predicate:
+                  type: simple
+                  expression: "${exchangeProperty.placeholders[logReceived]} != null && ${exchangeProperty.placeholders[logReceived]} == true"
+                steps:
+                  # REF- - Debug message
+                  - method: log
+                    level: "DEBUG"
+                    message: "Writing body to received file"
+
+                  # REF-H9Z - Log message to file
+                  - method: isslog
+                    message: "received | ${bodyAs(String)}"
+                    type: received
+                    queueSize: $[[uiMessageLimit]]
+                    writeToFile: $[[logReceived]]
+                    writeToDatabase: $[[logReceived]]
+
+          # REF- - Set body to origin message
+          - method: setBody
+            expression:
+              type: simple
+              expression: "${exchangeProperty.internalOrigMsg}"
+
+          # REF-4IZ - Data decoding
+          - method: choice
+            when:
+              # REF-BEK
+              - predicate:
+                  type: simple
+                  expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
+                steps:
+                  # REF- - Debug message
+                  - method: log
+                    level: "DEBUG"
+                    message: "decoding from gzip"
+                  - method: unmarshal
+                    type: gzip
+
+          # REF-1CY -  Datatype decoding
+          - method: choice
+            when:
+              # REF-0KL - Unmarshal JSON
+              - predicate:
+                  type: simple
+                  expression: "${header.Content-Type} ~~ 'json'"
+                steps:
+                  # REF- - Debug message
+                  - method: log
+                    level: "DEBUG"
+                    message: "decoding from json"
+                  - method: unmarshal
+                    type: json
+                  - method: choice
+                    when:
+                      - predicate:
+                          type: simple
+                          expression: "${body.getClass().getName()} == 'java.lang.String'"
+                        steps:
+                          - method: log
+                            level: "DEBUG"
+                            message: "decoding from json string - ${body.getClass().getName()}"
+                          - method: unmarshal
+                            type: json
+                  # Cache the unmarshalled body
+                  - method: setProperty
+                    key: unmarshalledBody
+                    value:
+                      type: "simple"
+                      expression: "${body}"
+                  # Append correlationId into the body
+                  - method: setBody
+                    expression:
+                      type: "groovy"
+                      expression: |
+                        if (body instanceof Map) {
+                          body["correlationId"] = headers["parentId"]
+                        }
+
+                        if (body instanceof ArrayList) {
+                          body.eachWithIndex { it, i ->
+                            if (it instanceof Map) {
+                              body[i]["correlationId"] = headers["parentId"]
+                            }
+                          }
+                        }
+                        return body
+                  # Convert the body back to its orig type
+                  - method: marshal
+                    type: json
+                  # Cache this body for use later on in the template
+                  - method: setProperty
+                    key: rawBody
+                    value:
+                      type: "simple"
+                      expression: "${bodyAs(String)}"
+              # REF-FU6 - Unmarshal XML
+              - predicate:
+                  type: simple
+                  expression: "${header.Content-Type} ~~ 'xml'"
+                steps:
+                  # REF- - Debug message
+                  - method: log
+                    level: "DEBUG"
+                    message: "decoding from xml"
+                  - method: unmarshal
+                    type: xml
+                  # Cache the unmarshalled body
+                  - method: setProperty
+                    key: unmarshalledBody
+                    value:
+                      type: "simple"
+                      expression: "${body}"
+                  # Append correlationId into the body
+                  - method: setBody
+                    expression:
+                      type: "groovy"
+                      expression: |
+                        body.correlationId = headers.parentId
+                        return body
+                  # Convert the body back to its orig type
+                  - method: marshal
+                    type: xml
+                  # Cache this body for use later on in the template
+                  - method: setProperty
+                    key: rawBody
+                    value:
+                      type: "simple"
+                      expression: "${bodyAs(String)}"
+              # REF-5JV - Unmarshal YAML
+              - predicate:
+                  type: simple
+                  expression: "${header.Content-Type} ~~ 'yaml'"
+                steps:
+                  # REF- - Debug message
+                  - method: log
+                    level: "DEBUG"
+                    message: "decoding from yaml"
+                  - method: unmarshal
+                    type: yaml
+                  # Cache the unmarshalled body
+                  - method: setProperty
+                    key: unmarshalledBody
+                    value:
+                      type: "simple"
+                      expression: "${body}"
+                  # Append correlationId into the body
+                  - method: setBody
+                    expression:
+                      type: "groovy"
+                      expression: |
+                        body.correlationId = headers.parentId
+                        return body
+                  # Convert the body back to its orig type
+                  - method: marshal
+                    type: yaml
+                  # Cache this body for use later on in the template
+                  - method: setProperty
+                    key: rawBody
+                    value:
+                      type: "simple"
+                      expression: "${bodyAs(String)}"
+            # REF-SCT - If datatype is unknown
+            otherwise:
+              - method: choice
+                when:
+                  - predicate:
+                      type: simple
+                      expression: "${exchangeProperty.placeholders[logReceived]} != null && ${exchangeProperty.placeholders[logReceived]} == true"
+                    steps:
+                      # REF- - Debug message
+                      - method: log
+                        level: "DEBUG"
+                        message: "datatype '${header.Content-Type}' unknown"
+                      # REF- - Debug message
+                      - method: log
+                        level: "DEBUG"
+                        message: "writing to received file"
+
+                      # REF-4UJ - Write log message to file
+                      - method: isslog
+                        message: "parentId=${headers.parentId} | missed(${header.Content-Type}) | ${bodyAs(String)}"
+                        type: received
+                        queueSize: $[[uiMessageLimit]]
+                        writeToFile: $[[logReceived]]
+                        writeToDatabase: $[[logReceived]]
+
+              # REF-0OP - Set header "CamelHttpResponseCode" to 400
+              - method: setHeader
+                key: CamelHttpResponseCode
+                value:
+                  type: constant
+                  expression: 400
+              # REF-JEF - Set Body to error message
+              - method: setBody
+                expression:
+                  type: simple
+                  expression: "Unknown datatype '${header.Content-Type}'\\n"
+              # Stop processing any further
+              - method: stop
+          # REF - create table
+          - method: setBody
+            expression:
+              type: simple
+              expression: "${exchangeProperty.createTable}"
+
+          - method: log
+            level: "INFO"
+            message: "Creating table SQL: ${exchangeProperty.createTable}"
+
+          - method: to
+            component: jdbc
+            properties:
+              dataSourceName: "$[[targetDatabase]]"
+              useHeadersAsParameters: true
+
+          - method: setBody
+            expression:
+              type: simple
+              expression: "${exchangeProperty.createTableTmp}"
+
+          # REF- - Debug message
+          - method: log
+            level: "INFO"
+            message: "Creating temp table SQL: ${exchangeProperty.createTable}"
+
+          - method: to
+            component: jdbc
+            properties:
+              dataSourceName: "$[[targetDatabase]]"
+              useHeadersAsParameters: true
+
+
+          # Set the body back to the unmarshalled format
+          - method: setBody
+            expression:
+              type: "simple"
+              expression: "${exchangeProperty.unmarshalledBody}"
+
+          - method: setProperty
+            key: data
+            value:
+              type: groovy
+              expression: |
+
+                if (headers.transformField == null || headers.transformField.isEmpty()) {
+                  return body
+                }
+
+                def field = headers.transformField
+
+                def result
+                if (body instanceof Map) {
+                  if (body.containsKey(field)) {
+                    result = body[field]
+                  }
+                }
+
+                if (result instanceof List) {
+                  result.eachWithIndex{it,index->
+                    if (it instanceof Map) {
+                      result[index] = flattenMap(it)
+                    }
+                  }
+                }
+
+                def flattenMap(Map map) {
+                    map.collectEntries { k, v ->
+                      if (v instanceof Map) {
+                          if (v.containsKey("display_value")) {
+                            [ (k): v["display_value"] ]
+                          } else {
+                            flattenMap(v).collectEntries {  k1, v1 ->
+                                key = k + "_" + k1
+                                [ (key): v1 ]
+                            }
+                          }
+                      } else {
+                          [ (k): v ]
+                      }
+                    }
+                }
+
+                return result
+
+          - method: setBody
+            expression:
+              type: "simple"
+              expression: "${exchangeProperty.data}"
+
+          - method: split
+            expressions:
+              - type: simple
+                expression: "${body}"
+            steps:
+
+              # REF-3P0 - If logProcessed is enabled
+              - method: choice
+                when:
+                  - predicate:
+                      type: simple
+                      expression: "${exchangeProperty.placeholders[logProcessed]} != null && ${exchangeProperty.placeholders[logProcessed]} == true"
+                    steps:
+                      # REF- - Debug message
+                      - method: log
+                        level: "DEBUG"
+                        message: "writing to proccessed file"
+                      # REF-4MH - Log message to file
+                      - method: isslog
+                        message: "parentId=${headers.parentId} | processed(${headers.CamelHttpPath}) | $[[targetDatabase]]"
+                        type: processed
+                        queueSize: $[[uiMessageLimit]]
+                        writeToFile: $[[logProcessed]]
+                        writeToDatabase: $[[logProcessed]]
+
+
+              # REF- - Convert the body to headers
+              - method: process
+                classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+
+              # REF- - Set body to origin message
+              - method: setBody
+                expression:
+                  type: simple
+                  expression: "${exchangeProperty.targetSqlStatement}"
+
+              # REF- - Run insert on destination db
+              - method: to
+                component: jdbc
+                properties:
+                  dataSourceName: "$[[targetDatabase]]"
+                  useHeadersAsParameters: true
+
+              - method: isslog
+                message: "parentId=${headers.parentId} | success() | ${bodyAs(String)}"
+                type: success
+                queueSize: $[[uiMessageLimit]]
+                writeToFile: $[[logSuccess]]
+                writeToDatabase: $[[logSuccess]]
+
+          # REF - clean up old records
+          - method: setBody
+            expression:
+              type: simple
+              expression: "${exchangeProperty.dropTable}"
+
+          - method: to
+            component: jdbc
+            properties:
+              dataSourceName: "$[[targetDatabase]]"
+              useHeadersAsParameters: true
+
+          - method: setBody
+            expression:
+              type: simple
+              expression: "${exchangeProperty.renameTable}"
+
+          - method: to
+            component: jdbc
+            properties:
+              dataSourceName: "$[[targetDatabase]]"
+              useHeadersAsParameters: true
+
+          # REF- - Restore headers from exchange
+          - method: process
+            classname: com.interlinksoftware.integrationhub.config.step.processor.RestoreOriginHeadersProcessor
+
+          - method: setBody
+            expression:
+              type: simple
+              expression: "{\"status\": \"OK\", \"requestId\": \"${headers.parentId}\"}"
+
+          # REF- - Set content type header
+          - method: setHeader
+            key: Content-Type
+            value:
+              type: constant
+              expression: application/json
+
