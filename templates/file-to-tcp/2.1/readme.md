@@ -53,7 +53,7 @@ From the Pipelines section of the user interface you can create, update and dele
 
 <br />
 
-If you would like to change the behavior of how the pipeline processes the file(s) you specified, the following optioonal settings can be configured:
+If you would like to change the behavior of how the pipeline processes the file(s) you specified, the following optional settings can be configured:
 
 | Property                                              |
 | :---------------------------------------------------- |
@@ -194,6 +194,6 @@ You can tailor message processing and transmission to the TCP listener based on 
 | `logReceived`    | If enabled all messages received will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property                   |
 | `logDropped`     | If enabled all messages dropped will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property                    |
 | `logProcessed`   | If enabled all messages processed will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property                  |
-| `logSuccess`     | If enabled all messages that were successfuly sent will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property |
+| `logSuccess`     | If enabled all messages that were successfully sent will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property |
 | `logFailed`      | If enabled all messages that have failed will be captured, the maximum number of entries is controlled by the `uiMessageLimit` property           |
 | `uiMessageLimit` | Specifies the maximum number of messages to store for this pipeline, the default is `200`                                                         |

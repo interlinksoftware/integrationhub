@@ -46,8 +46,8 @@ From the Pipelines section of the user interface you can create, update and dele
 | Parameter        | Type                                                       |
 | :--------------- | :--------------------------------------------------------- |
 | `host`           | Host to bind the listener to                               |
-| `port`           | Port to bind the listner to                                |
-| `protocol`       | The HTTP protcol for the HTTP listner (HTTP \| HTTPS)      |
+| `port`           | Port to bind the listener to                                |
+| `protocol`       | The HTTP protocol for the HTTP listener (HTTP \| HTTPS)      |
 | `dataSourceName` | The name of the data source to use for the pipeline output |
 | `templates`      | List of templates to match sql statements against          |
 

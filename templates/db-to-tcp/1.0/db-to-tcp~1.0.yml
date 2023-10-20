@@ -174,7 +174,7 @@ shared:
                         - method: setBody
                           expression:
                             type: simple
-                            expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | recieved | ${bodyAs(String)}\\n"
+                            expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | received | ${bodyAs(String)}\\n"
                         # REF-Y8M - Write log message to file
                         - method: to
                           component: file
@@ -352,7 +352,7 @@ shared:
                           steps:
                             - method: log
                               level: DEBUG
-                              message: "writing to recieved file"
+                              message: "writing to received file"
                             # REF-TOL - Build log message
                             - method: setBody
                               expression:
