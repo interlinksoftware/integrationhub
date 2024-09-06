@@ -1,0 +1,186 @@
+{
+    "templates": [
+        {
+            "name": "azure-eventhubs-to-tcp",
+            "description": "The azure-eventhubs-to-tcp template provides functionality to transfer, filter/transform and send from Azure Event Hubs to a TCP listener, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "2.1",
+                    "minimumCompatibilityVersion": "2.1.0"
+                },
+                {
+                    "name": "2.3",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
+        },
+        {
+            "name": "batchjob",
+            "description": "The batchjob template allows the execution of non-interactive commands and scripts against a schedule.",
+            "versions": [
+                {
+                    "name": "2.0",
+                    "minimumCompatibilityVersion": "2.0.0"
+                },
+                {
+                    "name": "2.1",
+                    "minimumCompatibilityVersion": "2.1.0"
+                }
+            ]
+        },
+        {
+            "name": "db-to-db",
+            "description": "The db-to-db template provides functionality to transfer, filter/transform and update data between databases using JDBC, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "1.0.0"
+                },
+                {
+                    "name": "2.0",
+                    "minimumCompatibilityVersion": "2.0.0"
+                }
+            ]
+        },
+        {
+            "name": "db-to-tcp",
+            "description": "The db-to-tcp template provides functionality to transfer, filter/transform and update data between a database (using JDBC) and a TCP Listener, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "1.0.0"
+                }
+            ]
+        },
+        {
+            "name": "file-to-tcp",
+            "description": "The file-to-tcp template provides functionality to read a files contents and forward it on to a TCP listener, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "2.1",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
+        },
+        {
+            "name": "file-watch-to-command",
+            "description": "The file-watch-to-command template provides functionality to execute a command when a CREATE | MODIFY | DELETE event occurs on a file or files within a specified location.",
+            "versions": [
+                {
+                    "name": "2.0",
+                    "minimumCompatibilityVersion": "2.1.0"
+                }
+            ]
+        },
+        {
+            "name": "rabbitmq-to-tcp",
+            "description": "The rabbitmq-to-tcp template provides functionality to transfer, filter/transform and send from a RabbitMQ queue to a TCP listener, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.3",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
+        },
+        {
+            "name": "rest-to-tcp",
+            "description": "The rest-to-tcp template provides functionality to query, filter/transform and send from HTTP requests to a TCP listener, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
+        },
+        {
+            "name": "restclient-to-dbtable",
+            "description": "The azure-eventhubs-to-tcp template provides functionality to transfer, filter/transform and send from Azure Event Hubs to a TCP listener, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
+        },
+        {
+            "name": "ssh-to-tcp",
+            "description": "The ssh-to-tcp template provides functionality to transfer, filter/transform and send output from an SSH remote command to a TCP listener, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "2.0",
+                    "minimumCompatibilityVersion": "2.0.0"
+                },
+                {
+                    "name": "2.1",
+                    "minimumCompatibilityVersion": "2.1.0"
+                },
+                {
+                    "name": "2.2",
+                    "minimumCompatibilityVersion": "2.2.0"
+                },
+                {
+                    "name": "2.3",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
+        },
+        {
+            "name": "syslog-to-tcp",
+            "description": "The syslog-to-tcp template creates a syslog listener that client applications can target to transfer data via a syslog. The integration-hub pipeline transfers, filters/transforms and updates the data, passing it out to the target TCP Listener.",
+            "versions": [
+                {
+                    "name": "2.0",
+                    "minimumCompatibilityVersion": "2.0.0"
+                }
+            ]
+        },
+        {
+            "name": "webhook-to-db",
+            "description": "The webhook-to-db template provides a secure HTTP endpoint that 3rd Party applications can target to transfer data via a webhook. The integration-hub pipeline transfers, filters/transforms and updates the data, sending it on to the target database using JDBC.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "1.0.0"
+                },
+                {
+                    "name": "2.0",
+                    "minimumCompatibilityVersion": "2.0.0"
+                }
+            ]
+        },
+        {
+            "name": "webhook-to-tcp",
+            "description": "The webhook-to-tcp template provides a secure HTTP endpoint that 3rd Party applications can target to transfer data via a webhook. The integration-hub pipeline transfers, filters/transforms and updates the data, passing it out to the target TCP Listener.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "1.0.0"
+                },
+                {
+                    "name": "1.1",
+                    "minimumCompatibilityVersion": "1.0.0"
+                },
+                {
+                    "name": "2.0",
+                    "minimumCompatibilityVersion": "2.0.0"
+                },
+                {
+                    "name": "2.1",
+                    "minimumCompatibilityVersion": "2.0.0"
+                },
+                {
+                    "name": "2.2",
+                    "minimumCompatibilityVersion": "2.1.0"
+                },
+                {
+                    "name": "2.3",
+                    "minimumCompatibilityVersion": "2.1.0"
+                },
+                {
+                    "name": "2.4",
+                    "minimumCompatibilityVersion": "2.1.0"
+                }
+            ]
+        }
+    ]
+}
