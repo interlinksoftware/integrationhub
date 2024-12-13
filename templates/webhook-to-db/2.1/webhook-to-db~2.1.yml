@@ -1,0 +1,530 @@
+shared:
+  templates:
+    "[webhook-to-db~2.1]":
+      version: 2.1
+      minimumCompatibilityVersion: 2.2.0
+      description: "The webhook-to-db template provides functionality to transfer, filter/transform and query data from databases (JDBC) using HTTP requests, via an integration-hub pipeline."
+      placeholders:
+        "logReceived":
+          description: "To log all retrieved data set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          required: false
+          defaultValue: true
+        "logProcessed":
+          description: "To log all target SQL statements set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          required: false
+          defaultValue: true
+        "logSuccess":
+          description: "To log messages that were success sent to the db destination set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log messages that failed to send onto the db destination set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "protocol":
+          description: "The http protocol for the http listener"
+          required: false
+          defaultValue: "https"
+        "host":
+          description: "Host to bound the listener to"
+          required: false
+          defaultValue: "0.0.0.0"
+        "templates":
+          description: "List of templates to match sql statements against"
+          required: true
+        "dataSourceName":
+          description: "The data source name to use for the pipeline output"
+          required: true
+        "sslContextParameters":
+          description: "The SSL configuration reference"
+          required: true
+        "authEnabled":
+          description: "Toggle basic authentication"
+          required: false
+          defaultValue: "false"
+        "users":
+          description: "Map of usernames and passwords"
+          required: false
+          type: "map"
+          defaultValue: ""
+        "preprocessHeaders":
+          description: ""
+          required: false
+          defaultValue: "NOT_SET"
+          bind-to-exchange: true
+      exceptions:
+        # REF-553 - Catch data conversion exceptions
+        - catches:
+            - "com.fasterxml.jackson.core.JsonParseException"
+            - "com.fasterxml.jackson.core.io.JsonEOFException"
+            - "org.yaml.snakeyaml.parser.ParserException"
+          handled:
+            type: constant
+            expression: "true"
+          use-original-message: true
+          steps:
+            # REF-028 - Log the error
+            - method: log
+              level: ERROR
+              message: "Error parsing body: ${body}. Caused by: ${exception.message}"
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[logFailed]} != null && ${exchangeProperty.placeholders[logFailed]} == true"
+                  steps:
+                    - method: isslog
+                      message: "failed | ${bodyAs(String)}"
+                      type: failed
+            # REF-NP9 - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-E8N - Set header "Content-Type" to "text/plain"
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: text/plain
+            # REF-3VS - Set body to message
+            - method: setBody
+              expression:
+                type: simple
+                expression: "Error parsing: ${body}. Please check message channel logs for more details"
+        # REF-QIM - Catch genric exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "Error processing data. ${exception.message}"
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[logFailed]} != null && ${exchangeProperty.placeholders[logFailed]} == true"
+                  steps:
+                    - method: isslog
+                      message: "failed | ${bodyAs(String)}"
+                      type: failed
+            # REF-E71 - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-884 - Set body to error message
+            - method: setBody
+              expression:
+                type: constant
+                expression: "Error processing data. ${exception}"
+        # REF-IBG - Catch No payload
+        - catches:
+            - "org.apache.integration_hub.NoTypeConversionAvailableException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "No content in payload"
+            # REF-BAL - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-XVO - Set body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: "Error no content body (${body}) ${exception.stacktrace}"
+      steps:
+        # REF-ZP4 - HTTP Listener
+        - method: from
+          component: rest
+          properties:
+            method: post,get,delete,put
+            path: "$[[dataSourceName]]"
+            uriTemplate: "/{table}"
+            component: jetty
+            scheme: "$[[protocol]]"
+            host: "$[[host]]"
+            port: "$[[port]]"
+            enableCORS: true
+            sendServerVersion: false
+            sslContextParameters: "$[[sslContextParameters]]"
+            endpointProperties:
+              security:
+                enabled: $[[authEnabled]]
+                type: basic
+                realm: $[[pipeline.id]]
+                users: $[[users]]
+            dataSourceName: "$[[dataSourceName]]"
+        # REF- - Store incoming message as "internalOrigMsg" property
+        - method: setProperty
+          key: internalOrigMsg
+          value:
+            type: "simple"
+            expression: "${body}"
+        # REF- - IF logReceived is enabled
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "$[[logReceived]] != null && $[[logReceived]] == true"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "Writing body to received file"
+                - method: isslog
+                  message: "received | ${bodyAs(String)}"
+                  type: received
+        # REF- - Set body to origin message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.internalOrigMsg}"
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[preprocessHeaders]} != null && ${exchangeProperty.placeholders[preprocessHeaders]} != 'NOT_SET' && ${exchangeProperty.placeholders[preprocessHeaders]} is 'java.util.List' && ${exchangeProperty.placeholders[preprocessHeaders].size()} > 0"
+              steps:
+                - method: loop
+                  expression:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[preprocessHeaders].size()}"
+                  copy: true
+                  steps:
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex}).getOrDefault(expression, NOT_SET)} != 'NOT_SET'"
+                          steps:
+                            - method: setProperty
+                              key: preprocessHeaderExpression
+                              value:
+                                type: "simple"
+                                expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[expression]}"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: simple
+                                    expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex}).getOrDefault(headers, NOT_SET)} != 'NOT_SET' && ${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[headers]} is 'java.util.Map'"
+                                  steps:
+                                    - method: choice
+                                      when:
+                                        - predicate:
+                                            type: groovy
+                                            expression: |
+                                              preprocessHeaderExpression = exchange.properties.get("preprocessHeaderExpression")
+                                              language = exchange.getContext().resolveLanguage("simple")
+                                              predicate = language.createPredicate(preprocessHeaderExpression)
+                                              return predicate.matches(exchange);
+                                          steps:
+                                            - method: log
+                                              level: "DEBUG"
+                                              message: "Preprocess header expression(${exchangeProperty.preprocessHeaderExpression}) matches!!"
+                                            - method: setBody
+                                              expression:
+                                                type: simple
+                                                expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[headers]}"
+                                            - method: process
+                                              classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+                                      otherwise:
+                                        - method: log
+                                          level: "DEBUG"
+                                          message: "Preprocess header expression(${exchangeProperty.preprocessHeaderExpression}) does not match"
+                              otherwise:
+                                - method: log
+                                  level: "ERROR"
+                                  message: "No headers for expression(exchangeProperty.preprocessHeaderExpression) in preprocessor definition '(${header.Integration_HubLoopIndex})'"
+                      otherwise:
+                        - method: log
+                          level: "ERROR"
+                          message: "No expression in preprocessor definition '${header.Integration_HubLoopIndex}'"
+          otherwise:
+            - method: log
+              level: "DEBUG"
+              message: "No preprocessor definitions"
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.internalOrigMsg}"
+        # REF-KSD - Store exchangeId as CorrelationId
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+        # REF-6AH - If POST request
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${header.Integration_HubHttpMethod} in 'POST,DELETE,PUT'"
+              steps:
+                # REF- - Log the error
+                - method: log
+                  level: info
+                  message: "Http method is ${header.Integration_HubHttpMethod}"
+                # REF-37A - Data decoding
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Decoding from gzip"
+                        # REF-R48 - Decode from gzip
+                        - method: unmarshal
+                          type: gzip
+                # REF-QH8 -  Datatype decoding
+                - method: choice
+                  when:
+                    # REF-URG - Unmarshal JSON
+                    - predicate:
+                        type: simple
+                        expression: "${header.Content-Type} ~~ 'json'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Decoding from json"
+                        - method: unmarshal
+                          type: json
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: simple
+                                expression: "${body.getClass().getName()} == 'java.lang.String'"
+                              steps:
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "decoding from json string - ${body.getClass().getName()}"
+                                - method: unmarshal
+                                  type: json
+                    # REF-82E - Unmarshal XML
+                    - predicate:
+                        type: simple
+                        expression: "${header.Content-Type} ~~ 'xml'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Decoding from xml"
+                        - method: unmarshal
+                          type: xml
+                    # REF-PVI - Unmarshal YAML
+                    - predicate:
+                        type: simple
+                        expression: "${header.Content-Type} ~~ 'yaml'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Decoding from yaml"
+                        - method: unmarshal
+                          type: yaml
+                  # REF-N83 - If datatype is unknown
+                  otherwise:
+                    # REF- - Log the error
+                    - method: log
+                      level: DEBUG
+                      message: "Unknown datatype ${header.Content-Type}"
+                    # REF-253 - Unknown datatype
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: "ERROR: Unknown datatype '${header.Content-Type}'"
+                    - method: stop
+                # REF-I7J - If the message matches a template key
+                - method: choice
+                  builder:
+                    data: templates
+                    predicate:
+                      type: simple
+                      expression: "$[[choice.key]]"
+                    steps:
+                      # REF- - Log the error
+                      - method: log
+                        level: DEBUG
+                        message: "Body matches template '$[[choice.key]]'"
+                      # REF- - Push body keys to headers
+                      - method: process
+                        classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+                      # REF-TFH - Set header "Integration_HubFreemarkerTemplate" to the matched template
+                      - method: setHeader
+                        key: Integration_HubFreemarkerTemplate
+                        value:
+                          type: "constant"
+                          expression: |
+                            <@compress single_line=true>
+                              $[[choice.value]]
+                            </@compress>
+                - method: to
+                  component: freemarker
+                  properties:
+                    resourceUri: dummy
+                    allowTemplateFromHeader: true
+                    allowContextMapAll: true
+          otherwise:
+            - method: log
+              level: info
+              message: "Http method is GET"
+            # REF-CDM - Convert the query string to a map
+            - method: setHeader
+              key: queryString
+              value:
+                type: groovy
+                expression: |
+                  def queryString  = headers.Integration_HubHttpServletRequest.getQueryString()
+                  if (queryString != null && queryString.length()) {
+
+                    def mapParams = queryString.split('&').collectEntries { param -> param.split('=').collect { URLDecoder.decode(it) }}
+
+                    mapParams.remove('_')
+
+                    return mapParams.entrySet().join('&')
+                  } else {
+                    return ""
+                  }
+            # Convert asiql query string to SQL
+            - method: asiql
+              language: "sql"
+              tableName: "${headers.table}"
+              query: "${headers.queryString}"
+        # REF-KSD - Store exchangeId as CorrelationId
+        - method: setProperty
+          key: generatedSql
+          value:
+            type: simple
+            expression: "${body}"
+        # REF- - Log the error
+        - method: log
+          level: INFO
+          message: "Generated SQL statement = '${exchangeProperty.generatedSql}'"
+        # REF- - IF logProcessed is enabled
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "$[[logProcessed]] != null && $[[logProcessed]] == true"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "Writing body to processed file"
+                - method: isslog
+                  message: "processed | ${bodyAs(String)}"
+                  type: processed
+        # REF- - Set body to the generated SQL
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.generatedSql}"
+        - method: log
+          message: "EPF - headers= '${headers}'"
+        # REF-ADC - Execute the query in the database
+        - method: to
+          component: jdbc
+          properties:
+            dataSourceName: "$[[dataSourceName]]"
+            useHeadersAsParameters: true
+        - method: setProperty
+          key: responseData
+          value:
+            type: simple
+            expression: "${body}"
+        - method: log
+          message: "EPF -- RESULT - '${exchangeProperty.responseData}'=${exchangeProperty.responseData.getClass().getName()}"
+        # REF- - Set body to the generated SQL
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.generatedSql}"
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[logSuccess]} != null && ${exchangeProperty.placeholders[logSuccess]} == true"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "writing to the success file"
+                - method: isslog
+                  message: "success | ${bodyAs(String)}"
+                  type: success
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.responseData}"
+        # REF-4E2 - If GET request
+        - method: choice
+          when:
+            # REF-QGQ
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.responseData.getClass().getName()} == 'java.util.ArrayList'"
+              steps:
+                - method: choice
+                  when:
+                    # REF-NYN - Marshal JSON
+                    - predicate:
+                        type: simple
+                        expression: "${header.Accept} in 'text/json,application/json'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Converting body to json"
+                        - method: marshal
+                          type: json
+                    # REF-1VS - Marshal XML
+                    - predicate:
+                        type: simple
+                        expression: "${header.Accept} in 'text/xml,application/xml'"
+                      steps:
+                        # REF- - Log the error
+                        - method: log
+                          level: DEBUG
+                          message: "Converting body to xml"
+                        - method: marshal
+                          type: xml
+                  # REF-TKP - If datatype is unknown
+                  otherwise:
+                    # REF- - Log the error
+                    - method: log
+                      level: DEBUG
+                      message: "No Accept header, converting body to json"
+                    - method: marshal
+                      type: json
+          otherwise:
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
+            # REF-8LM - If POST request return "OK"
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"success": true}'
