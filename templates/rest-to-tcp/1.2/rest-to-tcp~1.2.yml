@@ -1,0 +1,1000 @@
+shared:
+  templates:
+    "[rest-to-tcp~1.2]":
+      version: 1.2
+      minimumCompatibilityVersion: 2.4.0
+      description: "The rest-to-tcp template provides functionality to query, filter/transform and send from HTTP requests to a TCP listener, via an integration-hub pipeline."
+      placeholders:
+        "dataSource":
+          description: "The dataSource for the connection"
+          required: true
+          type: "string"
+        "schedule":
+          description: "The cron string that defines the schedule for this pipeline"
+          required: false
+          defaultValue: "0 * * ? * *"
+          type: "string"
+        "endpoints":
+          description: "List of endpoints to request data from"
+          bind-to-exchange: true
+          defaultValue: "NOT_SET"
+          type: "array"
+        "connectTimeout":
+          description: "Duration in seconds to timeout the request"
+          required: false
+          defaultValue: 10000
+          type: "integer"
+        "connectionRequestTimeout":
+          description: "Duration in seconds to stop the request"
+          required: false
+          defaultValue: 10000
+          type: "integer"
+        "blankPlaceholder":
+          description: "String to replace blank values with"
+          required: false
+          defaultValue: "N/A"
+          type: "string"
+        "fieldLimit":
+          description: "The maximum number of characters allowed in each field of the incoming message"
+          required: false
+          defaultValue: 256
+          type: "integer"
+        "messageLimit":
+          description: "The maximum number of characters allowed in the message after it has been formatted"
+          required: false
+          defaultValue: 4096
+          type: "integer"
+        "destinationServers":
+          description: "List of servers to send the pipeline output to"
+          bind-to-exchange: true
+          required: true
+          type: "array"
+        "logDropped":
+          description: "To log all dropped data set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          required: false
+          defaultValue: true
+          type: "boolean"
+        "logReceived":
+          description: "To log all retrieved data set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          required: false
+          defaultValue: true
+          type: "boolean"
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logProcessed":
+          description: "To log all target SQL statements set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          required: false
+          defaultValue: true
+          type: "boolean"
+        "newlinePlaceholder":
+          description: "String to replace newline characters values with"
+          required: false
+          defaultValue: " "
+          type: "string"
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "50"
+          type: "integer"
+        "unmarshalXmlAsList":
+          defaultValue: false
+          required: false
+          description: "If the XML response is a top level array set this to true to retrieve the full payload."
+          type: "boolean"
+
+      uiSchema:
+        type: object
+        properties:
+          restConnectionHeader:
+            type: header
+            title: REST Connection
+          restConnectionGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              fileConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  restConnectionTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: REST Connection Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### REST Connection Properties
+
+                              The following properties can be specified for this consumer.
+
+                              | property | description |
+                              | -- | -- |
+                              | Data Source | The dataSource for the connection |
+                              | Connection Timeout | Duration in seconds to timeout the request |
+                              | Connect Request Timeout | Duration in seconds to stop the request |
+                  restConnectionValue:
+                    type: object
+                    properties:
+                      restConnectionGrid:
+                        type: grid
+                        ui:
+                          areas:
+                            - dataSource dataSource dataSource dataSource
+                            - >-
+                              connectionTimeout connectionTimeout
+                              connectionRequestTimeout connectionRequestTimeout
+                          alignRow: center
+                        properties:
+                          dataSource:
+                            type: datasource
+                            ui:
+                              dataSourceType: rest
+                          connectionTimeout:
+                            type: number
+                            title: Connection Timeout
+                            defaultValue: 10000
+                          connectionRequestTimeout:
+                            type: number
+                            title: Connection Request Timeout
+                            defaultValue: 10000
+          endpointSection:
+            type: object
+            properties:
+              endpointHeader:
+                type: header
+                title: Endpoint Configuration
+              endpointContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  endpointConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      endpointConfigTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Endpoint Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Endpoint Properties
+
+                                  The following properties can be specified for the endpoints you want to configure.
+
+                                  | Property | Description |
+                                  | -- | -- |
+                                  | Schedule | The cron string used to specify the frequency of requests to each defined endpoint |
+                                  | Method | Select the HTTP method to use for the REST request |
+                                  | Url Path | Specify the Url path, this will be appended to the selected REST Datasource specified |
+                                  | Request Payload | Enter any data you want to send in the Body of the REST request |
+                                  | Format | Expression to use for the transformation of incoming messages |
+                                  | Split | Expression to use for splitting incoming data into multiple events |
+                                  | Checkpoint Enabled | Toggle to enable / disable checkpointing |
+                                  | Checkpoint Type | The type of checkpointing to use. For example:<br /><br />`field (value of a key in the body)`<br /><br />OR<br /><br />`date` |
+                                  | Checkpoint Name | Unique name for checkpointing |
+                                  | Checkpoint Key | The key from the payload that you want to set as the checkpoint key.<br /><br />If the checkpoint type is `date` the format would be as follows:<br /><br />`# '1970-01-01', '00:00:00'` <br />`key: "''yyyy-MM-dd'', ''hh:mm:ss''"`  |
+                                  | Checkpoint Default | Default value to set if the checkpoint does not exist.<br /><br />This can either be a string, or `now` if the checkpoint type is set to `date` |
+                      endpointConfigValue:
+                        type: object
+                        properties:
+                          schedule:
+                            type: cron
+                            title: Schedule
+                          endpoints:
+                            type: array
+                            ui:
+                              columns:
+                                - 16%
+                                - 26%
+                              addLabel: Endpoint
+                              areas:
+                                - method path path path
+                                - . . . .
+                                - payload payload format split
+                                - . . . .
+                                - headers headers headers headers
+                                - . . . .
+                                - checkpointEnabled checkpointEnabled checkpointEnabled checkpointEnabled
+                                - >-
+                                  checkpointType checkpointName checkpointKey
+                                  checkpointDefault
+                                - . . . .
+                            propertyTemplate:
+                              method:
+                                type: select
+                                title: method
+                                defaultValue: GET
+                                ui:
+                                  options:
+                                    - GET
+                                    - POST
+                                    - PUT
+                              path:
+                                type: string
+                                title: Url Path
+                              payload:
+                                type: string
+                                title: Request Payload
+                                defaultValue: ''
+                              format:
+                                type: string
+                                title: Format
+                                defaultValue: "${auto}"
+                              split:
+                                type: string
+                                title:  Split
+                                defaultValue: "${body}"
+                              checkpointEnabled:
+                                type: switch
+                                title: Checkpoint Enabled
+                              checkpointType:
+                                type: select
+                                title: Checkpoint Type
+                                ui:
+                                  options:
+                                    - field
+                                    - date
+                              checkpointName:
+                                type: string
+                                title: Checkpoint Name
+                              checkpointKey:
+                                type: string
+                                title: Checkpoint Key
+                              checkpointDefault:
+                                type: string
+                                title: Checkpoint Default
+                              headers:
+                                type: map
+                                title: Headers
+                                ui:
+                                  keyPlaceholder: Header Name
+                                valueSchema:
+                                  type: text
+                                  ui:
+                                    placeholder: Header Value
+          destinationSection:
+            type: object
+            properties:
+              destinationHeader:
+                type: header
+                title: Destination Configuration
+              destinationContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  commandConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: center
+                    properties:
+                      destinationTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Destination Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Destination Properties
+
+                                  The following properties can be specified for the destination.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Destination | Defines the output targets for this pipeline, specifying where the output will be directed |
+                      destinationValue:
+                        type: object
+                        properties:
+                          destinationGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                            properties:
+                              destinationServers:
+                                type: outputtarget
+                                title: Destination
+          optionalSettings:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              toggleAlertFormatting:
+                type: switch
+                title: Configure Alert Formatting
+                defaultValue: false
+              conditional-section-alertFormatting:
+                type: conditional
+                expression:
+                  left: $toggleAlertFormatting
+                  operator: "=="
+                  right: true
+                properties:
+                  alertFormat:
+                    type: grid
+                    ui:
+                      columns:
+                        - 30%
+                        - 30%
+                        - 20%
+                        - auto
+                    properties:
+                      newlinePlaceholder:
+                        type: string
+                        title: Newline Placeholder
+                        description: Replace newline characters with this value, defaults to a single space
+                      blankPlaceholder:
+                        type: string
+                        title: Blank Placeholder
+                        description: Replace blank keys with this value, defaults to a 'N/A'
+                        defaultValue: "N/A"
+                      fieldLimit:
+                        type: string
+                        title: Field Limit
+                        defaultValue: 256
+                      messageLimit:
+                        type: string
+                        title: Message Limit
+                        defaultValue: 4096
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: '=='
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of failed/dropped/success/processed/received messages to
+                      display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages received
+                      logDropped:
+                        defaultValue: true
+                        type: checkbox
+                        title: log dropped messages
+                      logProcessed:
+                        type: checkbox
+                        title: log processed messages
+                        defaultValue: true
+                      logSuccess:
+                        defaultValue: true
+                        type: checkbox
+                        title: log success messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed messages
+
+      pipelineFlow:
+        - type: block
+          label: Webservice REST
+          icon: cloud
+        - type: arrow
+          forward: true
+        - type: block
+          icon: arrow-down-to-square
+          label: "Forward to TCP Socket(s)"
+
+      exceptions:
+        - catches:
+            - "org.apache.integration_hub.http.base.HttpOperationFailedException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed to make request: ${exception.stacktrace}"
+            - method: isslog
+              message: "failed | Failed to make request: ${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+        - catches:
+            - "javax.net.ssl.SSLHandshakeException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed to make request: ${exception.stacktrace}"
+            - method: isslog
+              message: "failed | Failed to make request: ${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+        # REF- - Failed to send on socket
+        - catches:
+            - "java.net.ConnectException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed to send the body: ${exception.stacktrace}"
+            - method: isslog
+              message: "failed(${exchange.properties['internalMatchedKey']}) | [dest=${exchangeProperty.destinationHost}, message=${exchange.properties['internalProcessedMessage']}]"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+      steps:
+        # REF- - From defined schedule
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            cron: "$[[schedule]]"
+
+        # REF- - Remove all headers
+        - method: removeHeaders
+          pattern: "*"
+
+        # REF- - Store exchangeId as CorrelationId
+        # Basically parentId
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[endpoints]} != null && ${exchangeProperty.placeholders[endpoints]} != 'NOT_SET' && ${exchangeProperty.placeholders[endpoints]} is 'java.util.List' && ${exchangeProperty.placeholders[endpoints].size()} > 0"
+              steps:
+                # Loop through the endpoints
+                - method: loop
+                  expression:
+                      type: simple
+                      expression: "${exchangeProperty.placeholders[endpoints].size()}"
+                  copy: false
+                  steps:
+                    - method: setProperty
+                      key: loopIndex
+                      value:
+                        type: simple
+                        expression: "${header.Integration_HubLoopIndex}"
+                    - method: setProperty
+                      key: "endpoint"
+                      value:
+                        type: groovy
+                        expression: |
+
+                          def loopIndex = exchange.properties.get("loopIndex")
+                          def placeholders = exchange.properties.get("placeholders")
+                          def endpoints = placeholders.get("endpoints")
+                          def endpoint = endpoints[loopIndex]
+
+                          if (!endpoint.containsKey('path')) {
+                            endpoint.put("path", "/")
+                          }
+
+                          if (!endpoint.containsKey('split')) {
+                            endpoint.put("split", "\${body}")
+                          }
+
+                          if (!endpoint.containsKey('format')) {
+                            endpoint.put("format", "\${auto}")
+                          }
+
+                          if (!endpoint.containsKey('method')) {
+                            endpoint.put("method", "GET")
+                          }
+                          headers.put('Integration_HubHttpMethod', endpoint.get('method'))
+
+                          if (!endpoint.containsKey('payload')) {
+                            endpoint.put("payload", "")
+                          }
+
+                          if (!endpoint.containsKey('headers')) {
+                            endpoint.put("headers", null)
+                          } else {
+                            def endpointHeaders = endpoint.get('headers')
+                            if (endpointHeaders != null && endpointHeaders.size() != 0) {
+                              headers.putAll(endpointHeaders)
+                            }
+                          }
+
+                          if (!endpoint.containsKey('checkpointEnabled')) {
+                            endpoint.put("checkpointEnabled", false)
+                          } else {
+                              endpoint.put("checkpointEnabled", endpoint.get("checkpointEnabled").toBoolean())
+                          }
+
+                          if (!endpoint.containsKey('checkpointDefault')) {
+                            endpoint.put("checkpointDefault", "now")
+                          }
+
+                          if (!endpoint.containsKey('checkpointType')) {
+                            endpoint.put("checkpointType", "date")
+                          }
+
+                          if (!endpoint.containsKey('checkpointKey')) {
+                            endpoint.put("checkpointKey", "yyyy-MM-dd'T'HH:mm:ss")
+                          }
+
+                          if (!endpoint.containsKey('checkpointName')) {
+                            endpoint.put("checkpointName", "endpoint_${loopIndex}")
+                          }
+
+                          if (!endpoint.containsKey('allowList')) {
+                            endpoint.put("allowList", "NOT_SET")
+                          } else {
+                            if (!endpoint.get("allowList").equals("NOT_SET")) {
+                              def allowList = []
+                              endpoint.get("allowList").each{ k, v -> allowList.add("${v}") }
+                              endpoint.put("allowList", allowList)
+                            }
+                          }
+
+                          if (!endpoint.containsKey('denyList')) {
+                            endpoint.put("denyList", "NOT_SET")
+                          } else {
+                            if (!endpoint.get("denyList").equals("NOT_SET")) {
+                              def denyList = []
+                              endpoint.get("denyList").each{ k, v -> denyList.add("${v}") }
+                              endpoint.put("denyList", denyList)
+                            }
+                          }
+
+                          return endpoint
+
+                    # REF- - Read from checkpoint
+                    - method: checkpoint
+                      properties:
+                        action: "read"
+                        name: "${exchangeProperty.endpoint[checkpointName]}"
+                        type: "${exchangeProperty.endpoint[checkpointType]}"
+                        default: "${exchangeProperty.endpoint[checkpointDefault]}"
+                        enabled: "${exchangeProperty.endpoint[checkpointEnabled]}"
+                        key: "${exchangeProperty.endpoint[checkpointKey]}"
+
+                    # This is to populate the URL with any checkpoint references
+                    - method: setHeader
+                      key: Integration_HubFreemarkerTemplate
+                      value:
+                        type: "simple"
+                        expression: "${exchangeProperty.endpoint[path]}"
+
+                    # REF- - Compile FTL template
+                    - method: to
+                      component: freemarker
+                      properties:
+                        resourceUri: dummy
+                        allowTemplateFromHeader: true
+                        allowContextMapAll: true
+
+                    # REF- - Set the endpoint URL
+                    - method: setHeader
+                      key: Integration_HubHttpPath
+                      value:
+                        type: simple
+                        expression: "${body}"
+
+                    # This is to update the payload to contain any checkpoint references
+                    - method: setHeader
+                      key: Integration_HubFreemarkerTemplate
+                      value:
+                        type: "simple"
+                        expression: "${exchangeProperty.endpoint[payload]}"
+
+                    # REF- - Compile FTL template
+                    - method: to
+                      component: freemarker
+                      properties:
+                        resourceUri: dummy
+                        allowTemplateFromHeader: true
+                        allowContextMapAll: true
+
+                    # REF- - Run http or http query
+                    - method: to
+                      component: http
+                      properties:
+                        getWithBody: true
+                        dataSource: "$[[dataSource]]"
+                        connectTimeout: $[[connectTimeout]]
+                        connectionRequestTimeout: $[[connectionRequestTimeout]]
+
+                    # REF- - Set property "internalOriginMessage" to body
+                    - method: setProperty
+                      key: internalOriginMessage
+                      value:
+                        type: "simple"
+                        expression: "${body}"
+
+                    - method: isslog
+                      message: "received | ${bodyAs(String)}"
+                      type: received
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logReceived]]
+                      writeToDatabase: $[[logReceived]]
+
+                    # REF- - Data decoding
+                    - method: choice
+                      when:
+                        # REF-
+                        - predicate:
+                            type: simple
+                            expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
+                          steps:
+                            - method: unmarshal
+                              type: gzip
+
+                    # REF- -  Datatype decoding
+                    - method: choice
+                      when:
+                        # REF- - Unmarshal JSON
+                        - predicate:
+                            type: simple
+                            expression: "${header.Content-Type} ~~ 'json'"
+                          steps:
+                            - method: unmarshal
+                              type: json
+                        # REF- - Unmarshal XML
+                        - predicate:
+                            type: simple
+                            expression: "${header.Content-Type} ~~ 'xml'"
+                          steps:
+                            - method: unmarshal
+                              type: xml
+                              useList: $[[unmarshalXmlAsList]]
+                        # REF- - Unmarshal YAML
+                        - predicate:
+                            type: simple
+                            expression: "${header.Content-Type} ~~ 'yaml'"
+                          steps:
+                            - method: unmarshal
+                              type: yaml
+                      otherwise:
+                        # REF- - Build log message
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: "$simple{date:exchangeCreated:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | dropped(path=${headers.Integration_HubHttpPath}, method=${headers.Integration_HubHttpMethod}) | Unknown datatype (${header.Content-Type}) | ${exchange.properties['internalOriginMessage']}]\\n"
+                        - method: isslog
+                          message: "dropped | dropped(path=${headers.Integration_HubHttpPath}, method=${headers.Integration_HubHttpMethod}) | Unknown datatype (${header.Content-Type}) | ${exchange.properties['internalOriginMessage']}]"
+                          type: dropped
+                          queueSize: $[[uiMessageLimit]]
+                          writeToFile: $[[logDropped]]
+                          writeToDatabase: $[[logDropped]]
+                        - method: stop
+                    #
+                    # REF- - Debug message
+                    - method: log
+                      level: "DEBUG"
+                      message: "splitting body using '${exchangeProperty.endpoint[split]}'"
+                    # REF-SLB - Split payload if array
+                    - method: split
+                      resolve-maps-as-key-value: false
+                      expressions:
+                        - type: groovy
+                          expression: |
+                            def endpoint = exchange.properties.get("endpoint")
+                            def splitExpression = endpoint.get("split")
+                            def language = exchange.getContext().resolveLanguage("simple")
+                            def expression = language.createExpression(splitExpression)
+                            return expression.evaluate(exchange);
+                      steps:
+                        # REF- - Store split message as "internalSplitMsg" header
+                        - method: setProperty
+                          key: internalSplitMsg
+                          value:
+                            type: "simple"
+                            expression: "${body}"
+
+                        # REF- - Cleanse headers
+                        - method: process
+                          classname: com.interlinksoftware.integrationhub.config.step.processor.CleanseHeadersProcessor
+
+                        - method: removeHeaders
+                          pattern: "scheduler"
+                        - method: removeHeaders
+                          pattern: "File*"
+                        - method: removeHeaders
+                          pattern: "trigger*"
+                        - method: removeHeaders
+                          pattern: "mergedJobDataMap"
+                        - method: removeHeaders
+                          pattern: "jobInstance"
+                        - method: removeHeaders
+                          pattern: "jobDetail"
+                        - method: removeHeaders
+                          pattern: "Authorization"
+
+                        # REF- - Handle allow list
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: simple
+                                expression: "${exchangeProperty.endpoint[allowList]} != null && ${exchangeProperty.endpoint[allowList]} != 'NOT_SET' && ${exchangeProperty.endpoint[allowList]} is 'java.util.ArrayList' && ${exchangeProperty.endpoint[allowList].size()} > 0"
+                              steps:
+                                - method: loop
+                                  expression:
+                                    type: simple
+                                    expression: "${exchangeProperty.endpoint[allowList].size()}"
+                                  copy: false
+                                  steps:
+                                    - method: setProperty
+                                      key: allowListExpression
+                                      value:
+                                        type: "simple"
+                                        expression: "${exchangeProperty.endpoint[allowList].get(${header.Integration_HubLoopIndex})}"
+                                    - method: choice
+                                      when:
+                                        - predicate:
+                                            type: groovy
+                                            expression: |
+                                              allowListExpression = exchange.properties.get("allowListExpression")
+                                              language = exchange.getContext().resolveLanguage("simple")
+                                              predicate = language.createPredicate(allowListExpression)
+                                              return predicate.matches(exchange);
+                                          steps:
+                                            - method: log
+                                              level: "ERROR"
+                                              message: "allowList expression(${exchangeProperty.allowListExpression}) matches"
+                                            - method: setProperty
+                                              key: allowListCheck
+                                              value:
+                                                type: "constant"
+                                                expression: true
+                                      otherwise:
+                                        - method: log
+                                          level: "ERROR"
+                                          message: "allowList expression(${exchangeProperty.allowListExpression}) does not match"
+                                        - method: setProperty
+                                          key: allowListCheck
+                                          value:
+                                            type: groovy
+                                            expression: |
+                                              prop = exchange.properties.getOrDefault("allowListCheck", "NOT_SET")
+                                              if (prop == "NOT_SET") {
+                                                return false;
+                                              } else {
+                                                return prop;
+                                              }
+                          otherwise:
+                            - method: log
+                              level: "ERROR"
+                              message: "No allowList definitions"
+
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: "simple"
+                                expression: "${exchangeProperty.allowListCheck.toString()} =~ 'false'"
+                              steps:
+                                - method: log
+                                  level: "ERROR"
+                                  message: "Message not allowed by allowList"
+                                - method: isslog
+                                  message: "dropped | ${bodyAs(String)}"
+                                  type: dropped
+                                  writeToFile: $[[logDropped]]
+                                  writeToDatabase: $[[logDropped]]
+                                  queueSize: $[[uiMessageLimit]]
+                                - method: stop
+
+                        # REF- - Handle deny list
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: simple
+                                expression: "${exchangeProperty.endpoint.get(denyList)} != null && ${exchangeProperty.endpoint.get(denyList)} != 'NOT_SET' && ${exchangeProperty.endpoint.get(denyList)} is 'java.util.ArrayList' && ${exchangeProperty.endpoint.get(denyList).size()} > 0"
+                              steps:
+                                - method: loop
+                                  expression:
+                                    type: simple
+                                    expression: "${exchangeProperty.endpoint.get(denyList).size()}"
+                                  copy: false
+                                  steps:
+                                    - method: setProperty
+                                      key: denyListExpression
+                                      value:
+                                        type: "simple"
+                                        expression: "${exchangeProperty.endpoint.get(denyList).get(${header.Integration_HubLoopIndex})}"
+                                    - method: choice
+                                      when:
+                                        - predicate:
+                                            type: groovy
+                                            expression: |
+                                              denyListExpression = exchange.properties.get("denyListExpression")
+                                              language = exchange.getContext().resolveLanguage("simple")
+                                              predicate = language.createPredicate(denyListExpression)
+                                              return predicate.matches(exchange);
+                                          steps:
+                                            - method: log
+                                              level: "ERROR"
+                                              message: "denyList expression(${exchangeProperty.denyListExpression}) matches"
+                                            - method: setProperty
+                                              key: denyListCheck
+                                              value:
+                                                type: "constant"
+                                                expression: true
+                                      otherwise:
+                                        - method: log
+                                          level: "ERROR"
+                                          message: "denyList expression(${exchangeProperty.denyListExpression}) does not match"
+                                        - method: setProperty
+                                          key: denyListCheck
+                                          value:
+                                            type: groovy
+                                            expression: |
+                                              prop = exchange.properties.getOrDefault("denyListCheck", "NOT_SET")
+                                              if (prop == "NOT_SET") {
+                                                return false;
+                                              } else {
+                                                return prop;
+                                              }
+                          otherwise:
+                            - method: log
+                              level: "ERROR"
+                              message: "No denyList definitions"
+
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: "simple"
+                                expression: "${exchangeProperty.denyListCheck.toString()} =~ 'true'"
+                              steps:
+                                - method: log
+                                  level: "ERROR"
+                                  message: "Message not allowed by denyList"
+                                - method: isslog
+                                  message: "dropped | ${bodyAs(String)}"
+                                  type: dropped
+                                  writeToFile: $[[logDropped]]
+                                  writeToDatabase: $[[logDropped]]
+                                  queueSize: $[[uiMessageLimit]]
+                                - method: stop
+
+                        # REF- - Set header "Integration_HubFreemarkerTemplate" to the matched template
+                        - method: alertFormat
+                          template: ${exchangeProperty.endpoint[format]}
+                          blankPlaceholder: "$[[blankPlaceholder]]"
+                          newlinePlaceholder: "$[[newlinePlaceholder]]"
+                          fieldLimit: $[[fieldLimit]]
+                          messageLimit: $[[messageLimit]]
+
+                        # REF- - Store processed message
+                        - method: setProperty
+                          key: internalProcessedMessage
+                          value:
+                            type: "simple"
+                            expression: "${body}"
+
+                        - method: isslog
+                          message: "processed | ${bodyAs(String)}"
+                          type: processed
+                          queueSize: $[[uiMessageLimit]]
+                          writeToFile: $[[logProcessed]]
+                          writeToDatabase: $[[logProcessed]]
+
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: ${exchange.properties[internalProcessedMessage]}
+
+                        - method: destination
+                          outputRefExpression: ${exchangeProperty.placeholders[destinationServers]}
+
+                        # REF- - Set body to the processed message
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: "${exchangeProperty.internalSplitMsg}"
+
+                        # REF- - Write to checkpoint
+                        - method: checkpoint
+                          properties:
+                            action: "write"
+                            name: "${exchangeProperty.endpoint[checkpointName]}"
+                            type: "${exchangeProperty.endpoint[checkpointType]}"
+                            default: "${exchangeProperty.endpoint[checkpointDefault]}"
+                            enabled: "${exchangeProperty.endpoint[checkpointEnabled]}"
+                            key: "${exchangeProperty.endpoint[checkpointKey]}"
+          otherwise:
+            - method: log
+              level: "WARN"
+              message: "No endpoint definitions"
+            - method: stop
