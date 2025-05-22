@@ -237,6 +237,10 @@
                 {
                     "name": "2.6",
                     "minimumCompatibilityVersion": "2.4.0"
+                },
+                {
+                    "name": "2.7",
+                    "minimumCompatibilityVersion": "2.4.0"
                 }
             ]
         }
