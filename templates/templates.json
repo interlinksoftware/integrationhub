@@ -243,6 +243,20 @@
                     "minimumCompatibilityVersion": "2.4.0"
                 }
             ]
+        },
+        {
+            "name": "ird-to-servicenow",
+            "description": "The ird-to-servicenow template provides functionality to integrate BES (ird) with ServiceNow. Alert create, add-note and close events within BES can create, update and close incidents/changes within ServiceNow.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "2.2.0"
+                },
+                {
+                    "name": "1.1",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
         }
     ]
 }
