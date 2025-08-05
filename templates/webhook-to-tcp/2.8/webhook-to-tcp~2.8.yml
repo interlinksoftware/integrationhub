@@ -1293,7 +1293,7 @@ shared:
           message: "Writing body to received file"
         # REF-H9Z - Log message to file
         - method: isslog
-          message: "received | ${bodyAs(String)}"
+          message: "received | parentId=${exchangeProperty.parentId} | ${bodyAs(String)}"
           type: received
           queueSize: $[[uiMessageLimit]]
           writeToFile: $[[logReceived]]
