@@ -261,6 +261,16 @@
                     "minimumCompatibilityVersion": "2.2.0"
                 }
             ]
+        },
+        {
+            "name": "ird-to-remedy",
+            "description": "The ird-to-remedy template provides functionality to integrate BES (ird) with remedy. Alert create, add-note and close events within BES can create, update and close incidents/changes within remedy.",
+            "versions": [
+                {
+                    "name": "1.2",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
         }
     ]
 }
