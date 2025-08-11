@@ -1,0 +1,1708 @@
+shared:
+  templates:
+    "[ird-to-servicenow~1.2]":
+      version: "1.2"
+      minimumCompatibilityVersion: 2.2.0
+      description: "The ird-to-servicenow template provides functionality to integrate BES (ird) with ServiceNow. Alert create, add-note and close events within BES can create, update and close incidents/changes within ServiceNow."
+      placeholders:
+        "host":
+          description: "The hostname / ip address you want to configure for this listener"
+          required: false
+          defaultValue: "127.0.0.1"
+          type: "string"
+        "port":
+          description: "The port that this pipeline will listen on"
+          required: false
+          defaultValue: 38888
+          type: "integer"
+        "serviceNowInstance":
+          description: "The name of the ServiceNow datasource to use"
+          required: false
+          type: "string"
+        "preprocessFilters":
+          description: "Array of expressions, where if matched, prevents further processing"
+          required: false
+          defaultValue: "NOT_SET"
+          bind-to-exchange: true
+          type: "array"
+        "incidentIdObjectPath":
+          description: "JSON Object path in the response from ServiceNow that contains the Incident Number"
+          required: false
+          defaultValue: "${body[result][0][display_value]}"
+          bind-to-exchange: true
+          type: "string"
+        "globalFieldOverrides":
+          description: "List of Global Field Overrides to change the value of any fields in the BES alert"
+          required: false
+          defaultValue: ''
+          bind-to-exchange: true
+          type: "map"
+        "fireAndForget":
+          description: "When enabled, this template performs the specified action in ServiceNow (such as creating, updating, or closing an incident) but does not update the corresponding alert in BES. When disabled, the action is performed in ServiceNow and the alert in BES is updated accordingly (e.g., with the incident ID)."
+          required: false
+          defaultValue: false
+          bind-to-exchange: true
+          type: "boolean"
+        "localFieldOverrides":
+          description: "List of Local Field Overrides to change the value of any fields in the BES alert"
+          required: false
+          bind-to-exchange: true
+          defaultValue: ''
+          type: "map"
+        "incidentPayload":
+          description: "Payload to send to ServiceNow when creating an incident"
+          defaultValue: "NOT_SET"
+          bind-to-exchange: true
+        "connectTimeout":
+          description: "Duration in seconds to timeout the request"
+          required: false
+          defaultValue: 10000
+        "connectionRequestTimeout":
+          description: "Duration in seconds to stop the request"
+          required: false
+          defaultValue: 10000
+        "eventDaemonHost":
+          description: "The hostname for the EventDaemon connection - as required for AlertLookup"
+          type: "string"
+          required: false
+          defaultValue: "127.0.0.1"
+        "eventDaemonPort":
+          description: "The port for the EventDaemon connection - as required for AlertLookup"
+          type: "string"
+          required: false
+          defaultValue: "35000"
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logDropped":
+          description: "To log all dropped data, set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+      uiSchema:
+        type: object
+        properties:
+          listenerSection:
+            type: object
+            properties:
+              listenerSectionHeader:
+                type: header
+                title: Listener Configuration
+              listenerSectionContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  listenerSectionConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      listenerSectionTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Listener Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Listener Properties
+
+                                  This pipeline will listen for incoming messages that have been generated via the `createIncident` utility
+
+                                  The following properties can be specified when configuring the listener:
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Hostname / IP Address | The hostname / ip address you want to configure for this listener |
+                                  | Port | The number of the port you wish this pipeline to listen on |
+                      listenerSectionValue:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - auto
+                        properties:
+                          host:
+                            type: string
+                            title: Hostname / IP Address
+                            defaultValue: "127.0.0.1"
+                          port:
+                            type: number
+                            title: Port
+                            defaultValue: 38888
+          serviceNowHeader:
+            type: header
+            title: ServiceNow Connection
+          serviceNowGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              serviceNowConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  serviceNowConfigTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: Connection Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### Connection Properties
+
+                              The following properties can be specified for the ServiceNow connection.
+
+                              | property | description |
+                              | -- | -- |
+                              | ServiceNow Datasource | Datasource that contains the connection details for your ServiceNow environment |
+                              | Incident ID Object Path | The path, written using Apache Integration_Hub Simple Language, used to extract the incidentId from the ServiceNow response after an incident is created<br/><br/>Default: `${body[result][0][display_value]}`  |
+                  serviceNowConfigValue:
+                    type: object
+                    properties:
+                      serviceNowConnection:
+                        type: grid
+                        ui:
+                          areas:
+                            - >-
+                              serviceNowInstance serviceNowInstance serviceNowInstance serviceNowInstance
+                            - >-
+                              incidentIdObjectPath incidentIdObjectPath incidentIdObjectPath incidentIdObjectPath
+                          alignRow: baseline
+                        properties:
+                          serviceNowInstance:
+                            title: ServiceNow Datasource
+                            type: datasource
+                            ui:
+                              dataSourceType: rest
+                          incidentIdObjectPath:
+                            type: string
+                            title: Incident ID Object Path
+                            defaultValue: ${body[result][0][display_value]}
+                      globalMapping:
+                        type: expansion-panel
+                        title: Global Field Mappings
+                        ui:
+                          elevation: 2
+                        properties:
+                          globalFieldOverridesText:
+                            type: markdown
+                            defaultValue: >-
+                              <small><p>Use Global Field Overrides to change the value of any fields in the BES alert. For ServiceNow we reverse the severity as BES and ServiceNow are the reverse of each other.
+
+                              These overrides are applied to all requests to ServiceNow before any Local Field Overrides are added.
+
+
+                              Specify a simple expression to match on, then set the value of the field against the expression.</p>
+                          globalFieldOverrides:
+                            type: map
+                            ui:
+                              keyPlaceholder: Expression
+                            defaultValue:
+                              '[${body[severity]} ~~ 5]': severity = 1
+                              '[${body[severity]} ~~ 4]': severity = 2
+                              '[${body[severity]} ~~ 3]': severity = 3
+                              '[${body[severity]} ~~ 2]': severity = 3
+                              '[${body[severity]} ~~ 1]': severity = 4
+                              '[${body[severity]} ~~ 0]': severity = 4
+                            valueSchema:
+                              type: string
+                              ui:
+                                placeholder: Value
+          createIncidentSection:
+            type: object
+            properties:
+              createIncidentHeader:
+                type: header
+                title: Create Incident
+              createIncidentContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  createIncidentConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      createIncidentTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Create Incident Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Create Incident Properties
+
+                                  The properties below define the structure and content of the payload sent to ServiceNow. Use these to specify which fields to populate and how values are mapped from the incoming alert data.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Fire and Forget | When **enabled**, the action is performed in ServiceNow (such as creating, updating, or closing an incident) but does not update the corresponding alert in BES.<br/><br/>When **disabled**, the action is performed in ServiceNow and the alert in BES is updated accordingly (e.g., with the incident ID). |
+                                  | Path | ServiceNow endpoint that the payload will be sent to (_default: /api/now/import/u_bes_alert_) |
+                                  | Create Field Overrides | Use Create Field Overrides to override the value of any fields in the BES alert when creating an incident |
+                                  | ServiceNow Payload | Define the fields and values you wish to send to ServiceNow |
+                      createIncidentValue:
+                        type: object
+                        properties:
+                          incidentPayload:
+                            type: array
+                            ui:
+                              indexed: true
+                              addLabel: Definition
+                              columns:
+                                - auto
+                              areas:
+                                - fireAndForget fireAndForget fireAndForget fireAndForget
+                                - >-
+                                  preprocessFilters preprocessFilters preprocessFilters preprocessFilters
+                                - . . . .
+                                - path path path path
+                                - >-
+                                  localFieldOverrides localFieldOverrides localFieldOverrides localFieldOverrides
+                                - payload payload payload payload
+                                - responseProcessing responseProcessing responseProcessing responseProcessing
+                            propertyTemplate:
+                              fireAndForget:
+                                type: switch
+                                title: Fire and Forget
+                              preprocessFilters:
+                                type: array
+                                title: >-
+                                  Filter to match this definition
+                                ui:
+                                  columns:
+                                    - 20%
+                                    - auto
+                                  areas:
+                                    - trigger expression expression expression
+                                propertyTemplate:
+                                  trigger:
+                                    type: string
+                                    title: Name
+                                  expression:
+                                    type: string
+                                    title: Expression
+                                    help:
+                                      icon: info-circle
+                                      content: >-
+                                        ### Expression Properties
+
+                                        The following properties can be specified when defining the expressions to prevent further processing of an incoming alert
+
+
+                                          | property | description |
+                                          | -- | -- |
+                                          | Name | The name of the pre-process filter to help identify the purpose of the filter |
+                                          | Expression | The expression, that if matched, processes the incoming alert |
+
+                                        ### Expression Syntax
+
+
+                                        > **field** _operator_ **value**
+
+
+                                          | property | description |
+                                          | -- | -- |
+                                          | field | The field from the incoming alert.<br></br> To match against the alert, you must use<br> **${exchangeProperty.loadedAlert}** (_Examples Below_) |
+                                          | value | The value being tested against |
+
+                                        ##### operators
+
+
+                                            ==          equals
+                                            =~          equals (case insensitive)
+                                            !=          does not equal
+                                            !=~         does not equal (case insensitive)
+                                            contains    contains string
+                                            !contains   does not contain
+                                            regex       matches regex expression
+                                            !regex      does not match regex expression
+                                            &&          AND multiple expressions
+                                            ||          OR multiple expressions
+
+                                        ##### See examples below
+
+
+                                            # Process if 'occurences' are equal to 1
+                                            ${exchangeProperty.loadedAlert[occurrences]} == 1
+
+                                            # Process if alert is not in maintenace
+                                            ${exchangeProperty.loadedAlert[sysmntcls]} != ''
+
+                                            # Process if eId matches alertId
+                                            ${exchangeProperty.loadedAlert[eid]} == ${exchangeProperty.alertId}
+                              path:
+                                type: string
+                                title: Path
+                                defaultValue: /api/now/import/u_bes_alert
+                                help:
+                                  icon: info-circle
+                                  content: >
+                                    ### Path
+
+                                    > If the **path** has not been explicitly set by the user, it will default to the following:
+
+
+                                    - <code>/api/now/import/u_bes_alert</code>
+
+                              localFieldOverrides:
+                                type: map
+                                title: Create Field Overrides
+                                ui:
+                                  keyPlaceholder: Expression
+                                help:
+                                  icon: info-circle
+                                  content: >
+                                    ### Create Field Overrides
+
+
+                                    Use Create Field Overrides to override the value of any fields in the BES alert when creating an incident. These are applied AFTER the Global Fields Overrides above.
+
+
+                                    Specify a simple expression to match on, then set the value of the field against the expression.
+
+
+
+                                    ##### Simple Expressions
+
+
+                                    > **field** _`operator`_ **value**
+
+
+                                    **field:** the field that referenced from the incoming message. To match against the whole string use **`${bodyAs(String)}`** , to reference a specific field use **`${body[hostname]}`**
+
+
+                                    **operators**
+
+
+                                        ==          equals
+                                        =~          equals (case insensitive)
+                                        !=          does not equal
+                                        !=~         does not equal (case insensitive)
+                                        contains    contains string
+                                        !contains   does not contain
+                                        regex       matches regex expression
+                                        !regex      does not match regex expression
+                                        &&          AND multiple expressions
+                                        ||          OR multiple expressions
+
+                                    ##### See examples below
+
+
+                                        # match any string
+                                        ${bodyAs(String)} regex '(?s)(.*?)'
+                                        # incoming message contains 'this' but not 'that'
+                                        ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                                        # incoming message contains 'dog' or 'cat'
+                                        ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                                        # incoming message field 'username' equals 'ppadmin'
+                                        ${body[username]} == 'ppadmin'
+                                        # incoming message field 'username' is not null
+                                        ${body[username]} != null
+                                        # incoming message field 'origindate' equals todays date
+                                        ${body[origindate]} == ${date:now:yyyyMMdd}
+
+                                    **value:** The value to override within the payload
+
+
+                                    ##### See examples below
+
+
+                                        # If u_summary is null, set u_summary in the payload to 'New Summary'
+                                        '[${body[u_summary]} == null]': u_summary = New Summary
+
+                                        # If u_description contains 'something', set u_description in the payload to 'New Description'
+                                        "[${body[u_description]} contains 'something']": u_description = New Description
+
+                                      Please note that if you are searching for a string in the expression, you must surround the expression with double quotes ("") as shown in the second example
+                                valueSchema:
+                                  type: string
+                                  ui:
+                                    placeholder: Value
+                              payload:
+                                type: map
+                                title: ServiceNow Payload
+                                ui:
+                                  keyPlaceholder: ServiceNow field
+                                help:
+                                  icon: info-circle
+                                  content: >
+                                    ### ServiceNow Payload
+
+
+                                    Specify the ServiceNow fields and their corresponding values to include in the payload. Field names should match the target fields in ServiceNow, and values should be strings. You can dynamically insert data from the incoming alert using expressions like:
+
+
+
+                                      | ServiceNow Field | Value |
+                                      | -- | -- |
+                                      | alertid | ${exchangeProperty[alertId]} |
+                                      | domaintext | ${body[text]} |
+                                      | u_description | ${body[text]} |
+                                      | severity | ${body[severity]} |
+                                      | u_alertid | ${exchangeProperty[alertId]} |
+                                      | u_category | Alert |
+                                      | u_department | BES |
+                                      | u_item | ${body[_origobject]} |
+                                      | u_login | BES User |
+                                      | u_name | BES User |
+                                      | u_site | ${body[_location]} |
+                                      | u_source | Automatic |
+                                      | u_status | New |
+                                      | u_subcategory | BES |
+                                      | u_submitted_by | BES User |
+                                      | u_summary | ${body[text]} |
+                                      | u_business_service | ${body[_servicemodel]} |
+                                      | u_service_offering | ${body[_serviceoffering]} |
+                                columns:
+                                  - 10%
+                                  - auto
+                                valueSchema:
+                                  type: string
+                                  ui:
+                                    placeholder: Value
+                              responseProcessing:
+                                type: map
+                                title: Response Processing
+                                ui:
+                                  keyPlaceholder: Alert Field
+                                help:
+                                  icon: info-circle
+                                  content: >
+                                    ### Response Processing
+
+                                    Specify the alert fields and the corresponding values from the ServiceNow response to update the fields in the BES alert.
+
+
+
+                                      | Alert Field | Value from ServiceNow |
+                                      | -- | -- |
+                                      | _objectowner | ${body[result][0][status_message]} |
+                                      | _incidentreference | ${body[result][0][sys_id]} |
+                                columns:
+                                  - 10%
+                                  - auto
+                                valueSchema:
+                                  type: string
+                                  ui:
+                                    placeholder: Value
+          optionalSettings:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: "=="
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of failed/dropped/success/processed/received messages to display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages received
+                      logDropped:
+                        defaultValue: true
+                        type: checkbox
+                        title: log dropped messages
+                      logProcessed:
+                        type: checkbox
+                        title: log processed messages
+                        defaultValue: true
+                      logSuccess:
+                        defaultValue: true
+                        type: checkbox
+                        title: log success messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed messages
+      pipelineFlow:
+        - type: block
+          label: Interlink BES (ird)
+          icon: bolt
+        - type: pipe
+          children:
+            - type: arrow
+              forward: true
+              pullBackward: true
+            - type: block
+              label: transform
+              icon: shuffle
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          label: "ServiceNow"
+          icon: ticket
+      exceptions:
+        # Catch generic exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # We just log to logFailed here as setting the body to the error message ends up sending it to the IRD which we don't want
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | Error processing the body, please check the logs for more details. Exception=${exception.stacktrace}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+      steps:
+        - method: from
+          component: netty
+          properties:
+            protocol: tcp
+            host: $[[host]]
+            port: $[[port]]
+            sync: true
+            textline: true
+            decoderMaxLineLength: 65536
+        - method: setProperty
+          key: parentId
+          value:
+            type: "simple"
+            expression: "${exchangeId}"
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: '${body} == null || ${body} == ""'
+              steps:
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: '{"status": "ERROR", "requestId": "${exchangeId}", "message": "Invalid event received: ${body}" }'
+                - method: isslog
+                  message: "parentId=${exchange.properties[parentId]} | failed() | Invalid event received: ${body}"
+                  type: failed
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logFailed]]
+                  writeToDatabase: $[[logFailed]]
+                - method: stop
+        # Check if incoming message was a REPLY back to the IRD and stop processing if true
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${body} ~~ 'Received:SUCCESS' || ${body} ~~ 'Received:ERROR'"
+              steps:
+                - method: log
+                  level: DEBUG
+                  message: "Incoming message was a reply back to the IRD - No processing required!"
+                - method: stop
+        - method: setProperty
+          key: messageType
+          value:
+            type: groovy
+            expression: |
+              def messageType;
+              if (request.body.startsWith('<I>')) {
+                messageType = 'I';
+              } else if (request.body.startsWith('<C>')) {
+                messageType = 'C';
+              } else if (request.body.startsWith('<AN>')) {
+                messageType = "AN";
+              } else if (request.body.startsWith('<A>')) {
+                messageType = "A";
+              } else {
+                messageType = "UNKNOWN";
+              }
+              properties:messageType = messageType;
+        - method: log
+          level: DEBUG
+          message: "Escaping special characters in the incoming XML body"
+        - method: setProperty
+          key: escapedIncomingMessage
+          value:
+            type: groovy
+            expression: |
+              def escapeXmlText(String input) {
+                  return input
+                      .replace("&", "&amp;")
+                      .replace("<", "&lt;")
+                      .replace(">", "&gt;")
+                      .replace('"', "&quot;")
+                      .replace("'", "&apos;")
+              }
+
+              def escapeXmlSafely(String xml) {
+                  // Match either CDATA blocks or non-CDATA blocks
+                  def pattern = /<!\[CDATA\[.*?\]\]>|[^<]*?(<[^>]+>)/
+
+                  def matcher = xml =~ /<!\[CDATA\[.*?\]\]>|[^<]+|<[^>]+>/
+
+                  def result = new StringBuilder()
+
+                  matcher.each { segment ->
+                      def part = segment.toString()
+                      if (part.startsWith("<![CDATA[")) {
+                          result.append(part) // Preserve CDATA
+                      } else if (part.startsWith("<") && part.endsWith(">")) {
+                          result.append(part) // Preserve tag
+                      } else {
+                          result.append(escapeXmlText(part)) // Escape plain text
+                      }
+                  }
+
+                  return result.toString()
+              }
+
+              return escapeXmlSafely(body)
+        - method: log
+          level: DEBUG
+          message: "Escaped incoming XML body: ${exchangeProperty.escapedIncomingMessage}"
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.escapedIncomingMessage}"
+        - method: setProperty
+          key: internalOrigMsg
+          value:
+            type: "simple"
+            expression: "${body}"
+        - method: isslog
+          message: "received | Message Type | ${bodyAs(String)}"
+          type: received
+          queueSize: $[[uiMessageLimit]]
+          writeToFile: $[[logReceived]]
+          writeToDatabase: $[[logReceived]]
+        - method: unmarshal
+          type: xml
+        - method: setProperty
+          key: alertId
+          value:
+            type: simple
+            expression: "${body[alertId]}"
+        - method: setProperty
+          key: irdConfig
+          value:
+            type: simple
+            expression: "${body[config]}"
+        - method: setProperty
+          key: note
+          value:
+            type: simple
+            expression: "${body[note]}"
+        - method: process
+          classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+        - method: log
+          level: DEBUG
+          message: "HEADERS: ${headers} | BODY: ${body} | PROPS: ${exchange.properties}"
+        # Peform checks against alert before processing further
+        - method: process-with-properties
+          classname: com.interlinksoftware.integrationhub.config.step.processor.AlertLookupProcessor
+          properties:
+            dataSource: "besdb"
+            eventDaemonHost: $[[eventDaemonHost]]
+            eventDaemonPort: $[[eventDaemonPort]]
+            lookupFieldName: alertId
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.loadedAlert}"
+        # Check the messageType to determine which action in ServiceNow should be called
+        - method: setProperty
+          key: snowAction
+          value:
+            type: groovy
+            expression: |
+              def snowAction;
+
+              if (exchange.properties.messageType == 'I') {
+                snowAction = 'create';
+              } else if (exchange.properties.messageType == 'AN') {
+                snowAction = 'addNote';
+              } else if (exchange.properties.messageType == 'C') {
+                snowAction = 'close';
+              } else if (exchange.properties.messageType == 'A') {
+                snowAction = 'assign';
+              } else {
+                snowAction = "UNKNOWN";
+              }
+              properties:snowAction = snowAction;
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty[snowAction]} == 'UNKNOWN'"
+              steps:
+                - method: isslog
+                  message: "failed | failed() | Failed determining the ServiceNow action to execute for alert [${exchangeProperty.alertId}] | [${exchangeProperty[snowAction]}] does not match any of the following: [ create | addNote | close | assign ]"
+                  type: failed
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logFailed]]
+                  writeToDatabase: $[[logFailed]]
+                - method: stop
+          otherwise:
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty[snowAction]} == 'addNote' || ${exchangeProperty[snowAction]} == 'close' || ${exchangeProperty[snowAction]} == 'assign'"
+                  steps:
+                    - method: log
+                      level: DEBUG
+                      message: "Getting incidentId for alert [${exchangeProperty[alertId]}] from body -- ${body}"
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: ${exchangeProperty.internalOrigMsg}
+                    - method: unmarshal
+                      type: xml
+                    - method: setProperty
+                      key: incidentId
+                      value:
+                        type: simple
+                        expression: "${body[incidentId]}"
+                    - method: log
+                      level: INFO
+                      message: "Got incidentId [${exchangeProperty.incidentId}] for alert [${exchangeProperty[alertId]}] for action [${exchangeProperty[snowAction]}]"
+            - method: setBody
+              expression:
+                type: simple
+                expression: "${exchangeProperty.loadedAlert}"
+            - method: log
+              level: INFO
+              message: "ServiceNow action to execute against alert [${exchangeProperty.alertId}]: [${exchangeProperty[snowAction]}]"
+            - method: log
+              level: DEBUG
+              message: "EXCHANGE_DATA | HEADERS: ${headers} | BODY: ${body} | PROPS: ${exchange.properties}"
+            # Iterate over each object in the 'incidentPayload' array to determine if there is a filter match
+            - method: log
+              level: DEBUG
+              message: "SIZE OF INCIDENTPAYLOAD -- ${exchangeProperty.placeholders[incidentPayload].size()}"
+            - method: loop
+              expression:
+                type: simple
+                expression: "${exchangeProperty.placeholders[incidentPayload].size()}"
+              copy: false
+              steps:
+                - method: log
+                  level: DEBUG
+                  message: "Iterating over [incidentPayload] array to find a matching filter"
+                - method: setProperty
+                  key: payloadLoopIndex
+                  value:
+                    type: simple
+                    expression: "${header.Integration_HubLoopIndex}"
+                - method: loop
+                  expression:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[incidentPayload][${exchangeProperty.payloadLoopIndex}][preprocessFilters].size()}"
+                  copy: false
+                  steps:
+                    - method: log
+                      level: DEBUG
+                      message: "LOOP -- [${header.Integration_HubLoopIndex}]"
+                    - method: setProperty
+                      key: filterExpression
+                      value:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[incidentPayload][${exchangeProperty.payloadLoopIndex}][preprocessFilters][${header.Integration_HubLoopIndex}][expression]}"
+                    - method: log
+                      level: DEBUG
+                      message: "Processing filter expression [${exchangeProperty.placeholders[incidentPayload][${exchangeProperty.payloadLoopIndex}][preprocessFilters][${header.Integration_HubLoopIndex}][expression]}]"
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: groovy
+                            expression: |
+                              language = exchange.getContext().resolveLanguage("simple")
+                              filterExpression = exchange.properties.get("filterExpression")
+
+                              predicate = language.createPredicate(filterExpression)
+
+                              return predicate.matches(exchange)
+                          steps:
+                            - method: log
+                              level: DEBUG
+                              message: "Filter expression [${exchangeProperty.placeholders[incidentPayload][${exchangeProperty.payloadLoopIndex}][preprocessFilters][${header.Integration_HubLoopIndex}][expression]}] matches!"
+                            - method: setProperty
+                              key: filterMatch
+                              value:
+                                type: constant
+                                expression: true
+                            - method: setProperty
+                              key: matchedPayloadIndex
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty.payloadLoopIndex}"
+                      otherwise:
+                        - method: log
+                          level: DEBUG
+                          message: "Filter expression ${exchangeProperty.placeholders[incidentPayload][${exchangeProperty.payloadLoopIndex}][preprocessFilters][expression]} does not match!"
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.filterMatch} != true"
+                  steps:
+                    - method: log
+                      level: DEBUG
+                      message: "No matching filters were found -- Not continuing!"
+                    - method: isslog
+                      message: "dropped | No matching filters were found for incoming action -- Not continuing!"
+                      type: dropped
+                      writeToFile: $[[logDropped]]
+                      writeToDatabase: $[[logDropped]]
+                      queueSize: $[[uiMessageLimit]]
+                    - method: stop
+            - method: log
+              level: DEBUG
+              message: "Matched payload index [${exchangeProperty.matchedPayloadIndex}]"
+            - method: log
+              level: DEBUG
+              message: "Building ServiceNow Payload for alert [${exchangeProperty.alertId}]"
+            # Build payload object
+            - method: setProperty
+              key: payloadObject
+              value:
+                type: groovy
+                expression: |
+                  def placeholders = exchange.properties.get("placeholders")
+                  def endpoint = placeholders.incidentPayload[exchange.properties.get("matchedPayloadIndex")]
+                  def localFieldOverrides = endpoint.get("localFieldOverrides")
+
+                  if (!localFieldOverrides.isEmpty()) {
+                    exchange.properties['placeholders'].put("localFieldOverrides", endpoint.localFieldOverrides as Map)
+                  }
+
+                  // Set default path if it has not been set by the user
+                  if (!endpoint.containsKey('path') || endpoint.path == "") {
+                    endpoint.put("path", "/api/now/import/u_bes_alert")
+                  }
+
+                  return endpoint
+            - method: log
+              level: DEBUG
+              message: "Built ServiceNow Payload Object for alert [${exchangeProperty.alertId}] -- ${exchangeProperty.payloadObject}"
+            - method: setProperty
+              key: payloadPath
+              value:
+                type: simple
+                expression: "${exchangeProperty.payloadObject['path']}"
+            - method: setHeader
+              key: Integration_HubHttpPath
+              value:
+                type: simple
+                expression: "${exchangeProperty[payloadPath]}"
+            - method: log
+              level: DEBUG
+              message: "Processing global / local overrides | Current Payload Body = ${body}"
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[globalFieldOverrides]} != null && ${exchangeProperty.placeholders[globalFieldOverrides]} != 'NOT_SET' && ${exchangeProperty.placeholders[globalFieldOverrides]} is 'java.util.Map'"
+                  steps:
+                    - method: setValue
+                      properties:
+                        conditional: true
+                        assignmentsPlaceholderName: globalFieldOverrides
+                    - method: log
+                      level: DEBUG
+                      message: "ServiceNow Payload after processing [global] overrides = ${body}"
+              otherwise:
+                - method: log
+                  level: DEBUG
+                  message: "No [global] field overrides were defined"
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[localFieldOverrides]} != null && ${exchangeProperty.placeholders[localFieldOverrides]} != 'NOT_SET' && ${exchangeProperty.placeholders[localFieldOverrides]} is 'java.util.Map'"
+                  steps:
+                    - method: setValue
+                      properties:
+                        conditional: true
+                        assignmentsPlaceholderName: localFieldOverrides
+                    - method: log
+                      level: DEBUG
+                      message: "ServiceNow Payload after processing [local] overrides = ${body}"
+              otherwise:
+                - method: log
+                  level: DEBUG
+                  message: "No [local] field overrides were defined"
+            # Build an resolve expressions in payload
+            - method: setProperty
+              key: payload
+              value:
+                type: groovy
+                expression: |
+                  try {
+                      def payload = exchange.properties.get("payloadObject")?.get("payload")
+                      def language = exchange.getContext().resolveLanguage("simple")
+
+                      def jsonObject = [:]
+
+                      payload.each { key, value ->
+                          // Replace all hyphens in the key with space characters
+                          def modifiedKey = key.replaceAll('-', ' ')
+
+                          // Use regex to find all ${} expressions within the value
+                          def resolvedValue = value.replaceAll(/\$\{([^}]+)\}/) { match, expr ->
+                              try {
+                                  def evaluated = language.createExpression("\${" + expr + "}").evaluate(exchange, String)
+                                  return evaluated ?: ""
+                              } catch (Exception e) {
+                                  // Handle any individual expression failure gracefully
+                                  exchange.setProperty("isError", true)
+                                  exchange.setProperty("payloadErrorMessage", "Failed to resolve expression: \${" + expr + "} - " + e.message)
+                                  return "EXPR_ERROR"
+                              }
+                          }
+
+                          // Check for defaultValue logic if still needed
+                          if (resolvedValue.contains("defaultValue")) {
+                              def parts = resolvedValue.split("defaultValue")
+                              def expressionPart = parts[0].trim()
+                              def defaultPart = parts.size() > 1 ? parts[1].trim() : "Default Value"
+
+                              resolvedValue = (expressionPart.trim().isEmpty()) ? defaultPart : expressionPart
+                          }
+
+                          jsonObject[modifiedKey] = resolvedValue ?: "null"
+
+                          println("Original Key: '${key}', Modified Key: '${modifiedKey}', Original Value: '${value}', Modified Value: '${jsonObject[modifiedKey]}'")
+                      }
+
+                      // Return the fully resolved JSON object
+                      return jsonObject
+
+                  } catch (Exception e) {
+                      // Global failure handling
+                      exchange.setProperty("isError", true)
+                      exchange.setProperty("payloadErrorMessage", "Exception in Groovy payload processing: " + e.message)
+                      return [:]
+                  }
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.isError}"
+                  steps:
+                    - method: log
+                      level: ERROR
+                      message: "Failed to build the ServiceNow payload | Exception = ${exchangeProperty.payloadErrorMessage}"
+                    - method: isslog
+                      message: "parentId=${exchange.properties[parentId]} | failed() | Failed to build the ServiceNow payload | Exception = ${exchangeProperty.payloadErrorMessage}"
+                      type: failed
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logFailed]]
+                      writeToDatabase: $[[logFailed]]
+                    - method: stop
+            - method: log
+              level: INFO
+              message: "Built ServiceNow Payload for alert [${exchangeProperty.alertId}] -- ${exchangeProperty.payload}"
+            - method: setBody
+              expression:
+                type: simple
+                expression: "${exchangeProperty.payload}"
+            # Update existing 'payload' property with updated payload after processing overrides
+            - method: setProperty
+              key: payload
+              value:
+                type: simple
+                expression: "${body}"
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | processed() | ${exchangeProperty.payload}"
+              type: processed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logProcessed]]
+              writeToDatabase: $[[logProcessed]]
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty[snowAction]} == 'create'"
+                  steps:
+                    - method: log
+                      level: DEBUG
+                      message: "Action for alert [${exchangeProperty.alertId}] is [Create Incident]"
+                    # Check 'fireAndForget'
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[incidentPayload][${exchangeProperty.matchedPayloadIndex}][fireAndForget]} == true"
+                          steps:
+                            - method: log
+                              level: DEBUG
+                              message: "Fire and Forget is [Enabled] -- We will create the incident in ServiceNow, but we will not update alert [${exchangeProperty.alertId}] in BES"
+                            - method: setBody
+                              expression:
+                                type: simple
+                                expression: "${exchangeProperty.payload}"
+                            - method: marshal
+                              type: json
+                            - method: log
+                              level: INFO
+                              message: "Payload body before sending to ServiceNow for alert [${exchangeProperty.alertId}] | ${body}"
+                            - method: log
+                              level: DEBUG
+                              message: "CREATE PATH -- ${header.Integration_HubHttpPath}"
+                            - method: to
+                              component: http
+                              properties:
+                                httpMethod: POST
+                                dataSource: "$[[serviceNowInstance]]"
+                                connectTimeout: "$[[connectTimeout]]"
+                                connectionRequestTimeout: "$[[connectionRequestTimeout]]"
+                            - method: setProperty
+                              key: ServiceNowResponseHeader
+                              value:
+                                type: "simple"
+                                expression: "${headers}"
+                            - method: setProperty
+                              key: ServiceNowResponseBody
+                              value:
+                                type: "simple"
+                                expression: "${body}"
+                            - method: log
+                              level: INFO
+                              message: "ServiceNow Response headers: ${exchangeProperty.ServiceNowResponseHeader}, Response body: ${exchangeProperty.ServiceNowResponseBody}"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: groovy
+                                    expression: |
+                                      import groovy.json.JsonSlurper
+                                      def responseBody = exchange.getProperty('ServiceNowResponseBody', String.class)
+                                      def json = new JsonSlurper().parseText(responseBody)
+                                      def hasError = json.result.any { it.status == "error" }
+                                      return exchange.getIn().getHeader('Integration_HubHttpResponseCode') == 201 && !hasError
+                                  steps:
+                                    - method: log
+                                      level: INFO
+                                      message: "(ServiceNow) | Incident successfully created in ServiceNow for BES Alert [${exchangeProperty[alertId]}] | Payload = ${exchangeProperty.payload} | Not parsing the IncidentId since [fireAndForget] is disabled"
+                              otherwise:
+                                - method: isslog
+                                  message: "failed | failed(ServiceNow) | Failed to create incident in ServiceNow for alert [${exchangeProperty.alertId}] | Payload: ${exchangeProperty.payload} Returned: [${header.Integration_HubHttpResponseCode} - ${exchangeProperty.ServiceNowResponseBody}]"
+                                  type: failed
+                                  queueSize: $[[uiMessageLimit]]
+                                  writeToFile: $[[logFailed]]
+                                  writeToDatabase: $[[logFailed]]
+                                - method: stop
+                      otherwise:
+                        - method: log
+                          level: DEBUG
+                          message: "Fire and Forget is [Disabled] -- We will create the incident in ServiceNow, and update alert [${exchangeProperty.alertId}] in BES"
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: "${exchangeProperty.payload}"
+                        - method: marshal
+                          type: json
+                        - method: log
+                          level: INFO
+                          message: "ServiceNow Payload for alert [${exchangeProperty.alertId}] before sending | ${body}"
+                        - method: log
+                          level: DEBUG
+                          message: "CREATE PATH -- ${header.Integration_HubHttpPath}"
+                        - method: to
+                          component: http
+                          properties:
+                            httpMethod: POST
+                            dataSource: "$[[serviceNowInstance]]"
+                            connectTimeout: "$[[connectTimeout]]"
+                            connectionRequestTimeout: "$[[connectionRequestTimeout]]"
+                        - method: setProperty
+                          key: ServiceNowResponseHeader
+                          value:
+                            type: "simple"
+                            expression: "${headers}"
+                        - method: setProperty
+                          key: ServiceNowResponseBody
+                          value:
+                            type: "simple"
+                            expression: "${body}"
+                        - method: log
+                          level: INFO
+                          message: "ServiceNow Response headers: ${exchangeProperty.ServiceNowResponseHeader}, Response body: ${exchangeProperty.ServiceNowResponseBody}"
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: groovy
+                                expression: |
+                                  import groovy.json.JsonSlurper
+                                  def responseBody = exchange.getProperty('ServiceNowResponseBody', String.class)
+                                  def json = new JsonSlurper().parseText(responseBody)
+                                  def hasError = json.result.any { it.status == "error" }
+                                  return exchange.getIn().getHeader('Integration_HubHttpResponseCode') == 201 && !hasError
+                              steps:
+                                - method: log
+                                  level: DEBUG
+                                  message: "Incident successfully created for alert [${exchangeProperty.alertId}] in ServiceNow"
+                                # Unmarshal the response from ServiceNow so we can read the Incident ID
+                                - method: unmarshal
+                                  type: json
+                                - method: setProperty
+                                  key: incidentId
+                                  value:
+                                    type: groovy
+                                    expression: |
+                                      def language = exchange.getContext().resolveLanguage("simple")
+                                      expression = exchange.properties.placeholders.incidentIdObjectPath
+                                      return language.createExpression(expression).evaluate(exchange, String)
+                                - method: log
+                                  level: INFO
+                                  message: "(ServiceNow) | Incident successfully created in ServiceNow for BES Alert [${exchangeProperty[alertId]}] | Payload = ${exchangeProperty.payload} | Not parsing the IncidentId since [fireAndForget] is disabled"
+                                - method: log
+                                  level: DEBUG
+                                  message: "Request returned the following Incident ID for alert [${exchangeProperty.alertId}] = ${exchangeProperty.incidentId}"
+                                # Process 'responseProcessing' to update various fields in the alert
+                                - method: log
+                                  level: INFO
+                                  message: "Processing alert field updates for alert [${exchangeProperty[alertId]}]"
+                                - method: log
+                                  level: DEBUG
+                                  message: "Alert Field update set -- ${exchangeProperty.payloadObject['responseProcessing']}"
+                                - method: setProperty
+                                  key: eventDaemonBody
+                                  value:
+                                    type: constant
+                                    expression: ""
+                                # Intialize 2 empty arrays -- 1 for failed expressions, 2 for succeeeded expressions -- These will be logged at the end of processing
+                                - method: setProperty
+                                  key: failedResponseProcessing
+                                  value:
+                                    type: groovy
+                                    expression: "[]"
+                                - method: setProperty
+                                  key: succeededResponseProcessing
+                                  value:
+                                    type: groovy
+                                    expression: "[]"
+                                - method: loop
+                                  expression:
+                                    type: simple
+                                    expression: "${exchangeProperty.payloadObject['responseProcessing'].size()}"
+                                  copy: false
+                                  steps:
+                                    - method: setProperty
+                                      key: updateSetLoopIndex
+                                      value:
+                                        type: simple
+                                        expression: "${header.Integration_HubLoopIndex}"
+                                    - method: log
+                                      level: WARN
+                                      message: "Loop Index = ${exchangeProperty.updateSetLoopIndex}"
+                                    - method: setBody
+                                      expression:
+                                        type: simple
+                                        expression: "${exchangeProperty.ServiceNowResponseBody}"
+                                    - method: unmarshal
+                                      type: json
+                                    - method: setProperty
+                                      key: responseProcessing
+                                      value:
+                                        type: groovy
+                                        expression: |
+                                          def language = exchange.getContext().resolveLanguage("simple")
+                                          def updateSet = exchange.properties.payloadObject['responseProcessing']
+                                          def index = exchange.properties.updateSetLoopIndex as Integer
+
+                                          def keys = updateSet.keySet().toList().sort()
+                                          def selectedKey = keys[index]
+                                          def selectedItem = updateSet[selectedKey]
+
+                                          def result = [field: selectedKey, expression: selectedItem, value: null]
+                                          try {
+                                              if (selectedItem) {
+                                                  def expr = language.createExpression(selectedItem.toString())
+                                                  if (expr != null) {
+                                                      result.value = expr.evaluate(exchange, String)
+                                                  }
+                                              }
+                                          } catch (Exception e) {
+                                              println("Failed to evaluate: ${selectedItem} -> ${e.message}")
+                                              result.value = null
+                                          }
+
+                                          return result
+                                    - method: setProperty
+                                      key: alertField
+                                      value:
+                                        type: simple
+                                        expression: "${exchangeProperty.responseProcessing[field]}"
+                                    - method: setProperty
+                                      key: alertFieldValue
+                                      value:
+                                        type: simple
+                                        expression: "${exchangeProperty.responseProcessing[value]}"
+                                    - method: log
+                                      level: INFO
+                                      message: "Working on - ${exchangeProperty.alertField} = ${exchangeProperty.alertFieldValue}"
+                                    - method: setProperty
+                                      key: failedResponseProcessing
+                                      value:
+                                        type: groovy
+                                        expression: |
+                                          def failList = exchange.properties.failedResponseProcessing ?: []
+                                          if (exchange.properties.responseProcessing.value == null) {
+                                            failList << "${exchange.properties.responseProcessing.field}: ${exchange.properties.responseProcessing.expression}"
+                                          }
+                                          return failList
+                                    - method: setProperty
+                                      key: succeededResponseProcessing
+                                      value:
+                                        type: groovy
+                                        expression: |
+                                          def successList = exchange.properties.succeededResponseProcessing ?: []
+                                          if (exchange.properties.responseProcessing.value != null) {
+                                            successList << "${exchange.properties.responseProcessing.field}: ${exchange.properties.responseProcessing.value}"
+                                          }
+                                          return successList
+                                    - method: choice
+                                      when:
+                                        - predicate:
+                                            type: simple
+                                            expression: "${exchangeProperty.responseProcessing[value]} != null"
+                                          steps:
+                                            - method: setBody
+                                              expression:
+                                                type: groovy
+                                                expression: |
+                                                  def field = exchange.properties.alertField
+                                                  def value = exchange.properties.alertFieldValue
+                                                  def alertId = exchange.properties.alertId
+
+                                                  def cn = "<CN><NAME>ServiceNow (Update Field [${field}]</NAME></CN>"
+                                                  def uf = "<UF><alertId>${alertId}</alertId><fieldname>${field}</fieldname><oldvalue></oldvalue><newvalue>${value}</newvalue></UF>"
+                                                  return cn + "\n" + uf
+                                            # Prepare body with payload to send to the event daemon
+                                            - method: log
+                                              level: INFO
+                                              message: "Sending EventDaemon block: ${body}"
+                                            - method: to
+                                              component: netty
+                                              properties:
+                                                protocol: tcp
+                                                host: $[[eventDaemonHost]]
+                                                port: $[[eventDaemonPort]]
+                                                sync: true
+                                                textline: true
+                                                decoderMaxLineLength: 65536
+                                                disconnect: true
+                                                keepAlive: false
+                                            - method: log
+                                              level: DEBUG
+                                              message: "Response code from EventDaemon for alert [${exchangeProperty.alertId}] -- [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                                            - method: choice
+                                              when:
+                                                - predicate:
+                                                    type: simple
+                                                    expression: "${header.Integration_HubHttpResponseCode} >= 200 && ${header.Integration_HubHttpResponseCode} <= 299"
+                                                  steps:
+                                                    - method: log
+                                                      level: INFO
+                                                      message: "Updated [${exchangeProperty.alertField}] = [${exchangeProperty.alertFieldValue}] for BES Alert [${exchangeProperty.alertId}]"
+                                              otherwise:
+                                                - method: isslog
+                                                  message: "failed | failed(EventDaemon) | Failed to update [${exchangeProperty.alertField}] = [${exchangeProperty.alertFieldValue}] | Alert [${exchangeProperty.alertId}] | [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                                                  type: failed
+                                                  queueSize: $[[uiMessageLimit]]
+                                                  writeToFile: $[[logFailed]]
+                                                  writeToDatabase: $[[logFailed]]
+                                - method: log
+                                  level: INFO
+                                  message: "Sending Reply back to the IRD to trigger the update of its tracking data in the ISS_IR_Incident_Table"
+                                - method: setBody
+                                  expression:
+                                    type: simple
+                                    expression: "<Reply>Received:SUCCESS: alertId(${exchangeProperty[alertId]}) Incident: ${exchangeProperty[incidentId]} has been opened</Reply>\n"
+                                - method: log
+                                  level: DEBUG
+                                  message: "Sending response back to IRD to confirm incident creation for alert [${exchangeProperty.alertId}]"
+                                - method: to
+                                  component: netty
+                                  properties:
+                                    protocol: tcp
+                                    host: $[[host]]
+                                    port: $[[port]]
+                                    sync: true
+                                    textline: true
+                                    decoderMaxLineLength: 65536
+                                    disconnect: true
+                                - method: log
+                                  level: INFO
+                                  message: "Response code from IRD for alert [${exchangeProperty.alertId}] -- [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                                - method: choice
+                                  when:
+                                    - predicate:
+                                        type: simple
+                                        expression: "${header.Integration_HubHttpResponseCode} >= 200 && ${header.Integration_HubHttpResponseCode} <= 299"
+                                      steps:
+                                        - method: isslog
+                                          message: "success | success() | Incident [${exchangeProperty.incidentId}] created and assigned to BES Alert [${exchangeProperty.alertId}] | Payload = ${exchangeProperty.payload} | Updated fields: ${exchangeProperty.succeededResponseProcessing}"
+                                          type: success
+                                          queueSize: $[[uiMessageLimit]]
+                                          writeToFile: $[[logSuccess]]
+                                          writeToDatabase: $[[logSuccess]]
+                                  othwerwise:
+                                    - method: isslog
+                                      message: "failed | failed(IRD) | Failed when sending REPLY back to the IRD to confirm incident creation for alert [${exchangeProperty.alertId}] | [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                                      type: failed
+                                      queueSize: $[[uiMessageLimit]]
+                                      writeToFile: $[[logFailed]]
+                                      writeToDatabase: $[[logFailed]]
+                                    - method: stop
+                                - method: choice
+                                  when:
+                                    - predicate:
+                                        type: simple
+                                        expression: "${exchangeProperty.failedResponseProcessing.size()} > 0"
+                                      steps:
+                                        - method: isslog
+                                          message: "failed | failed() | One or more field expressions failed: [${exchangeProperty.failedResponseProcessing}]"
+                                          type: failed
+                                          queueSize: $[[uiMessageLimit]]
+                                          writeToFile: $[[logFailed]]
+                                          writeToDatabase: $[[logFailed]]
+                          otherwise:
+                            - method: isslog
+                              message: "failed | failed(ServiceNow) | Failed to create incident in ServiceNow for alert [${exchangeProperty.alertId}] | Payload: ${exchangeProperty.payload} Returned: [${header.Integration_HubHttpResponseCode} - ${exchangeProperty.ServiceNowResponseBody}]"
+                              type: failed
+                              queueSize: $[[uiMessageLimit]]
+                              writeToFile: $[[logFailed]]
+                              writeToDatabase: $[[logFailed]]
+                            - method: stop
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty[snowAction]} == 'assign' || ${exchangeProperty[snowAction]} == 'close' || ${exchangeProperty[snowAction]} == 'addNote'"
+                  steps:
+                    - method: log
+                      level: DEBUG
+                      message: "Peforming [${exchangeProperty[snowAction]}] on alert [${exchangeProperty.alertId}]"
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty[snowAction]} == 'assign'"
+                          steps:
+                            - method: setBody
+                              expression:
+                                type: simple
+                                expression: "${exchangeProperty[payload]}"
+                            - method: marshal
+                              type: json
+                            - method: setHeader
+                              key: Content-Type
+                              value:
+                                type: simple
+                                expression: "application/json"
+                            - method: setHeader
+                              key: Accept
+                              value:
+                                type: simple
+                                expression: "application/json"
+                            - method: setHeader
+                              key: Integration_HubHttpMethod
+                              value:
+                                type: simple
+                                expression: "POST"
+                            - method: setHeader
+                              key: Integration_HubHttpPath
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty[payloadPath]}"
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty[snowAction]} == 'close'"
+                          steps:
+                            - method: setBody
+                              expression:
+                                type: simple
+                                expression: "${exchangeProperty[payload]}"
+                            - method: marshal
+                              type: json
+                            - method: setHeader
+                              key: Content-Type
+                              value:
+                                type: simple
+                                expression: "application/json"
+                            - method: setHeader
+                              key: Accept
+                              value:
+                                type: simple
+                                expression: "application/json"
+                            - method: setHeader
+                              key: Integration_HubHttpMethod
+                              value:
+                                type: simple
+                                expression: "POST"
+                            - method: setHeader
+                              key: Integration_HubHttpPath
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty[payloadPath]}"
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty[snowAction]} == 'addNote'"
+                          steps:
+                            - method: setBody
+                              expression:
+                                type: simple
+                                expression: "${exchangeProperty[payload]}"
+                            - method: marshal
+                              type: json
+                            - method: setHeader
+                              key: Content-Type
+                              value:
+                                type: simple
+                                expression: "application/json"
+                            - method: setHeader
+                              key: Accept
+                              value:
+                                type: simple
+                                expression: "application/json"
+                            - method: setHeader
+                              key: Integration_HubHttpMethod
+                              value:
+                                type: simple
+                                expression: "POST"
+                            - method: setHeader
+                              key: Integration_HubHttpPath
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty[payloadPath]}"
+                    - method: to
+                      component: http
+                      properties:
+                        okStatusCodeRange: 200-299
+                        dataSource: "$[[serviceNowInstance]]"
+                        connectTimeout: "$[[connectTimeout]]"
+                        connectionRequestTimeout: "$[[connectionRequestTimeout]]"
+                    - method: setProperty
+                      key: ServiceNowResponseHeader
+                      value:
+                        type: "simple"
+                        expression: "${headers}"
+                    - method: setProperty
+                      key: ServiceNowResponseBody
+                      value:
+                        type: "simple"
+                        expression: "${body}"
+                    - method: log
+                      level: INFO
+                      message: "ServiceNow Response headers: ${exchangeProperty.ServiceNowResponseHeader}, Response body: ${exchangeProperty.ServiceNowResponseBody}"
+                    # Check fireAndForget
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[incidentPayload][${exchangeProperty.matchedPayloadIndex}][fireAndForget]} == true"
+                          steps:
+                            - method: log
+                              level: DEBUG
+                              message: "Fire and Forget is [Enabled] -- Not processing any further."
+                      otherwise:
+                        - method: log
+                          level: DEBUG
+                          message: "Fire and Forget is [Disabled] -- Sending response for alert [${exchangeProperty.alertId}] back to BES"
+                        - method: log
+                          level: DEBUG
+                          message: "SERVICENOW RESPONSE = ${body}"
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: groovy
+                                expression: |
+                                  import groovy.json.JsonSlurper
+                                  def responseBody = exchange.getProperty('ServiceNowResponseBody', String.class)
+                                  def json = new JsonSlurper().parseText(responseBody)
+                                  def hasError = json.result.any { it.status == "error" }
+                                  return exchange.getIn().getHeader('Integration_HubHttpResponseCode') == 201 && !hasError
+                              steps:
+                                - method: isslog
+                                  message: "success | success(ServiceNow) | [${exchangeProperty[snowAction]}] performed successfully on Incident [${exchangeProperty[incidentId]}]"
+                                  type: success
+                                  queueSize: $[[uiMessageLimit]]
+                                  writeToFile: $[[logSuccess]]
+                                  writeToDatabase: $[[logSuccess]]
+                                - method: setBody
+                                  expression:
+                                    type: simple
+                                    expression: "<Reply>Received:SUCCESS: alertId(${exchangeProperty[alertId]}) [${exchangeProperty[snowAction]}] performed successfully on Incident: (${exchangeProperty[incidentId]})</Reply>\n"
+                                - method: log
+                                  level: INFO
+                                  message: "Sending response back to the IRD to acknowledge that [${exchangeProperty[snowAction]}] was successful for alert [${exchangeProperty.alertId}]"
+                                - method: to
+                                  component: netty
+                                  properties:
+                                    protocol: tcp
+                                    host: $[[host]]
+                                    port: $[[port]]
+                                    sync: true
+                                    textline: true
+                                    decoderMaxLineLength: 65536
+                                    disconnect: true
+                                - method: log
+                                  level: INFO
+                                  message: "IRD Response -- [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                                - method: choice
+                                  when:
+                                    - predicate:
+                                        type: simple
+                                        expression: "${header.Integration_HubHttpResponseCode} == 201"
+                                      steps:
+                                        - method: log
+                                          level: DEBUG
+                                          message: "IRD received acknowledgement that [${exchangeProperty[snowAction]}] was successful for alert [${exchangeProperty.alertId}]"
+                                  othwerwise:
+                                    - method: log
+                                      level: ERROR
+                                      message: "Failed when sending response back to the IRD to confirm incident [${exchangeProperty[snowAction]}] for alert [${exchangeProperty.alertId}] | [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                          otherwise:
+                            - method: isslog
+                              message: "failed | failed(ServiceNow) | Failed performing [${exchangeProperty[snowAction]}] on Incident [${exchangeProperty[incidentId]}] for alert [${exchangeProperty.alertId}] | [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                              type: failed
+                              queueSize: $[[uiMessageLimit]]
+                              writeToFile: $[[logFailed]]
+                              writeToDatabase: $[[logFailed]]
+                            - method: setBody
+                              expression:
+                                type: simple
+                                expression: "<Reply>Received:ERROR: alertId(${exchangeProperty[alertId]}) Failed to perform [${exchangeProperty[snowAction]}] on Incident: (${exchangeProperty[incidentId]})</Reply>\n"
+                            - method: log
+                              level: INFO
+                              message: "Sending response back to the IRD to acknowledge that [${exchangeProperty[snowAction]}] for alert [${exchangeProperty.alertId}] was unsuccessful"
+                            - method: to
+                              component: netty
+                              properties:
+                                protocol: tcp
+                                host: $[[host]]
+                                port: $[[port]]
+                                sync: true
+                                textline: true
+                                decoderMaxLineLength: 65536
+                                disconnect: true
+                            - method: log
+                              level: INFO
+                              message: "Response code from IRD [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: simple
+                                    expression: "${header.Integration_HubHttpResponseCode} == 201"
+                                  steps:
+                                    - method: log
+                                      level: DEBUG
+                                      message: "IRD received acknowledgement that [${exchangeProperty[snowAction]}] for alert [${exchangeProperty.alertId}] was unsuccessful"
+                              othwerwise:
+                                - method: log
+                                  level: ERROR
+                                  message: "Failed when sending response back to the IRD to report error for incident [${exchangeProperty[snowAction]}] for alert [${exchangeProperty.alertId}] | [${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
