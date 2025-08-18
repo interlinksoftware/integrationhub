@@ -275,6 +275,16 @@
                     "minimumCompatibilityVersion": "2.2.0"
                 }
             ]
+        },
+        {
+            "name": "db-to-datahub-metric",
+            "description": "The db-to-datahub-metric template provides functionality to query a source database and use the results to create metrics in DataHub, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
         }
     ]
 }
