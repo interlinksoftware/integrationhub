@@ -1,0 +1,1085 @@
+shared:
+  templates:
+    "[db-to-datahub-metric~1.0]":
+      version: "1.0"
+      minimumCompatibilityVersion: 2.2.0
+      description: "The db-to-datahub-metric template provides functionality to query a source database and use the results to create metrics in DataHub, via an integration-hub pipeline."
+      placeholders:
+        "sql":
+          description: "Map of SQL statements"
+          bind-to-exchange: true
+          required: true
+          type: "array"
+        "schedule":
+          description: "The cron string that defines the schedule for this pipeline"
+          required: true
+          defaultValue: "0 0 0 * * ?"
+          type: "string"
+        "sourceDataSource":
+          description: "The data source name to use for the pipeline input"
+          required: true
+          type: "string"
+        "datahubInstance":
+          description: "The name of the Datahub datasource to use"
+          required: true
+          type: "string"
+        "metricArray":
+          bind-to-exchange: true
+          description: "Array of metric definitions. Each item has metricName and datahubPayload (map)"
+          required: false
+          defaultValue: []
+          type: "array"
+        "connectTimeout":
+          description: "Duration in seconds to timeout the request"
+          required: false
+          defaultValue: 10000
+        "connectionRequestTimeout":
+          description: "Duration in seconds to stop the request"
+          required: false
+          defaultValue: 10000
+        "allowList":
+          bind-to-exchange: true
+          description: "List of logic statements to determine if the request can proceed"
+          required: false
+          defaultValue: "NOT_SET"
+        "denyList":
+          bind-to-exchange: true
+          description: "List of logic statements to halt the request"
+          required: false
+          defaultValue: "NOT_SET"
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logDropped":
+          description: "To log all dropped data, set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+      uiSchema:
+        type: object
+        properties:
+          dataSourceHeader:
+            type: header
+            title: Datasource Endpoints
+          dataSourceGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              dataSourceConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  dataSourceConfigTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: Datasource Endpoint Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### Datasource Endpoint Properties
+
+                              The following properties can be specified for the Datasource Endpoint:
+
+                              | property | description |
+                              | -- | -- |
+                              | Schedule | The cron string that defines the schedule for this pipeline |
+                              | Source Datasource | The data source name to use for the pipeline input |
+                  dataSourceConfigValue:
+                    type: object
+                    properties:
+                      fileConfigGrid:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - auto
+                          areas:
+                            - schedule sourceDataSource sourceDataSource sourceDataSource
+                          alignRow: baseline
+                        properties:
+                          schedule:
+                            type: cron
+                            title: Schedule
+                          sourceDataSource:
+                            type: datasource
+                            title: Source Datasource
+                            ui:
+                              dataSourceType: jdbc
+          sqlSection:
+            type: object
+            properties:
+              sqlHeader:
+                type: header
+                title: SQL Statements
+              sqlContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  sqlConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      sqlTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: SQL Statement Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### SQL Statement Properties
+
+                                  The following properties can be specified for the source SQL staements.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Source SQL Statement | The SQL Statement to query data from the source datasource |
+                                  | Checkpointing | Toggle to enable / disable checkpointing<br /><br />(_More info can be found within the SQL statement definitions_) |
+                      sqlValue:
+                        type: object
+                        properties:
+                          sqlGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                            properties:
+                              sql:
+                                type: array
+                                title: SQL Statements
+                                ui:
+                                  columns:
+                                    - auto
+                                  areas:
+                                    - "sourceSqlStatement sourceSqlStatement sourceSqlStatement sourceSqlStatement"
+                                    - "checkpointEnabled . . ."
+                                    - "checkpointType checkpointName checkpointKey checkpointDefault"
+                                  indexed: true
+                                propertyTemplate:
+                                  sourceSqlStatement:
+                                    type: string
+                                    title: Source SQL statement
+                                    description: 'SQL statement to query data from the source database'
+                                    ui:
+                                      rows: 4
+                                    help:
+                                      icon: info-circle
+                                      content: |-
+                                        ### Source SQL statement
+                                        The SQL statement to execute against the source DataSource
+
+                                        #### Specifying a checkpoint value in the source SQL statement
+
+                                        ```
+                                        # Select records from iss_pp_alerts_table and only return records > the last alertid from the previous execution
+                                        SELECT * FROM iss_pp_alerts_table where alertid >= ${exchange.properties.checkpointValue}
+                                        ```
+                                  checkpointEnabled:
+                                    type: switch
+                                    title: Checkpointing
+                                    help:
+                                      icon: info-circle
+                                      content: |-
+                                        ### Checkpoints
+
+                                        Using a checkpoint ensures only new data that matches your `sourceSqlStatement` is processed on each read.<br/><br /> Each time the `sourceSqlStatement` is executed, the checkpoint value from the previous execution is used.<br/><br />
+
+                                        | Property | Description |
+                                        | -------- | ----------- |
+                                        | Checkpoint Type | The SQL data type (ie: `date`, `integer`, `text`) |
+                                        | Checkpoint Name | Unique name for this checkpoint field |
+                                        | Checkpoint Key | The field returned from the SQL source staement whose value is stored |
+                                        | Checkpoint Default | A default value to set when the pipeline is first run, or if a value cannot be determined |
+
+                                        <br />
+
+                                        #### How to specify a checkpoint value in the source SQL statement
+
+                                        In the example below, the checkpoint key is the `alertid`. This ensures that only rows where the `alertid` is greater than the previous execution are returned.<br/><br />
+
+                                        ```
+                                        # Select records from iss_pp_alerts_table and only return records > the last alertid from the previous execution
+                                        SELECT * FROM iss_pp_alerts_table where alertid >= ${exchange.properties.checkpointValue}
+                                        ```
+                                  checkpointType:
+                                    type: select
+                                    title: Checkpoint Type
+                                    ui:
+                                      options:
+                                        - date
+                                        - integer
+                                        - text
+                                        - key
+                                  checkpointName:
+                                    type: string
+                                    title: Checkpoint Name
+                                  checkpointKey:
+                                    type: string
+                                    title: Checkpoint Key
+                                  checkpointDefault:
+                                    type: string
+                                    title: Checkpoint Default
+          datahubSection:
+            type: object
+            properties:
+              datahubHeader:
+                type: header
+                title: Datahub Connection
+              datahubGroup:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  datahubConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      datahubConfigTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Connection Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Connection Properties
+
+                                  The following properties can be specified for the DataHub connection.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | DataHub Datasource | Datasource that contains the connection details for DataHub |
+                                  | DataHub Index Path | Path to the index in DataHub that you wish to send incoming data to  |
+                                  | Metric Name | A meaningful name for the metric that will be stored in DataHub |
+                                  | DataHub Payload | A map of key/value pairs, defining the payload to send to DataHub |
+                                  | Tags | A list of tags to add to the metric |
+                      datahubConfigValue:
+                        type: object
+                        properties:
+                          datahubConnection:
+                            type: grid
+                            ui:
+                              areas:
+                                - datahubInstance datahubInstance datahubInstance datahubInstance
+                                - metricArray metricArray metricArray metricArray
+                              alignRow: baseline
+                            properties:
+                              datahubInstance:
+                                type: datasource
+                                title: DataHub Datasource
+                                ui:
+                                  dataSourceType: rest
+                              metricArray:
+                                type: array
+                                ui:
+                                  areas:
+                                    - path path metricName metricName
+                                    - datahubPayload datahubPayload datahubPayload datahubPayload
+                                    - tags tags tags tags
+                                  columns:
+                                    - auto
+                                    - auto
+                                    - auto
+                                    - auto
+                                  indexed: true
+                                  addLabel: Metric
+                                propertyTemplate:
+                                  path:
+                                    type: string
+                                    title: DataHub Index Path
+                                    defaultValue: "/metrics/_doc/"
+                                  metricName:
+                                    type: string
+                                    title: Metric Name
+                                  datahubPayload:
+                                    type: map
+                                    title: DataHub Payload
+                                    ui:
+                                      keyPlaceholder: Key
+                                    help:
+                                      icon: info-circle
+                                      content: |
+                                        ### DataHub Payload
+
+                                        Define the key/value pairs you wish to send to DataHub.
+
+                                        You can include values from the incoming alert by specifying:
+
+                                        **`${body[`**\<alertField\>**`]}`**
+
+                                        For example, take the following incoming message:
+
+                                        `{"name": "CPU Alert", "Usage": 90, "Severity": "CRITICAL"}`
+
+                                        If you want to extract the `name` from the body, for the value you would specify:
+
+                                        **`${body[name]}`**
+                                    columns:
+                                      - 10%
+                                      - auto
+                                    valueSchema:
+                                      type: string
+                                      ui:
+                                        valuePlaceholder: Value
+                                  tags:
+                                    type: array
+                                    title: Tags
+                                    ui:
+                                      addLabel: Tag
+          optionalSettings:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              toggleAllowDenyList:
+                type: switch
+                title: Configure Allow/Deny List
+                defaultValue: false
+              conditional-section-allow-deny:
+                type: conditional
+                expression:
+                  left: $toggleAllowDenyList
+                  operator: "=="
+                  right: true
+                properties:
+                  allowList:
+                    type: array
+                    title: Allow list (process if expression is matched)
+                    ui:
+                      indexed: true
+                    help:
+                      icon: info-circle
+                      content: |-
+                        ### Simple Expressions
+
+                        > **field** _operator_ **value**
+
+                        ##### field: the field that referenced from the incoming message. To match against the whole string use **\${bodyAs(String)}** , to reference a specific field use **\${body.hostname}**
+                        ##### value: the value being tested against
+                        ##### operators
+
+                            ==          equals
+                            =~          equals (case insensitive)
+                            !=          does not equal
+                            !=~         does not equal (case insensitive)
+                            contains    contains string
+                            !contains   does not contain
+                            regex       matches regex expression
+                            !regex      does not match regex expression
+                            &&          AND multiple expressions
+                            ||          OR multiple expressions
+
+                        ##### See examples below
+
+                            # match any string
+                            ${bodyAs(String)} regex '(?s)(.*?)'
+                            # incoming message contains 'this' but not 'that'
+                            ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                            # incoming message contains 'dog' or 'cat'
+                            ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                            # incoming message field 'username' equals 'ppadmin'
+                            ${body.username} == 'ppadmin'
+                            # incoming message field 'username' is not null
+                            ${body.username} != null
+                            # incoming message field 'origindate' equals todays date
+                            ${body.origindate} == ${date:now:yyyyMMdd}
+                  denyList:
+                    type: array
+                    title: Deny list (drop if expression is matched)
+                    ui:
+                      indexed: true
+                    help:
+                      icon: info-circle
+                      content: |-
+                        ### Simple Expressions
+
+                        > **field** _operator_ **value**
+
+                        ##### field: the field that referenced from the incoming message. To match against the whole string use **\${bodyAs(String)}** , to reference a specific field use **\${body.hostname}**
+                        ##### value: the value being tested against
+                        ##### operators
+
+                            ==          equals
+                            =~          equals (case insensitive)
+                            !=          does not equal
+                            !=~         does not equal (case insensitive)
+                            contains    contains string
+                            !contains   does not contain
+                            regex       matches regex expression
+                            !regex      does not match regex expression
+                            &&          AND multiple expressions
+                            ||          OR multiple expressions
+
+                        ##### See examples below
+
+                            # match any string
+                            ${bodyAs(String)} regex '(?s)(.*?)'
+                            # incoming message contains 'this' but not 'that'
+                            ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                            # incoming message contains 'dog' or 'cat'
+                            ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                            # incoming message field 'username' equals 'ppadmin'
+                            ${body.username} == 'ppadmin'
+                            # incoming message field 'username' is not null
+                            ${body.username} != null
+                            # incoming message field 'origindate' equals todays date
+                            ${body.origindate} == ${date:now:yyyyMMdd}
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: '=='
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of failed/dropped/success/processed/received messages to display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages received
+                      logProcessed:
+                        type: checkbox
+                        title: log processed messages
+                        defaultValue: true
+                      logSent:
+                        defaultValue: true
+                        type: checkbox
+                        title: log sent messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed messages
+      pipelineFlow:
+        - type: block
+          label: Source Datasource
+          icon: database
+        - type: pipe
+          children:
+            - type: arrow
+              forward: true
+              pullBackward: true
+            - type: block
+              label: query
+            - type: arrow
+              forward: true
+            - type: block
+              label: drop
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          icon: brackets-curly
+          label: Create DataHub Metric
+      exceptions:
+        # REF-EJC - Catch genric exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "Error processing data: ${exception.stacktrace}"
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+      steps:
+        # REF-VMX - Run schedule
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            cron: "$[[schedule]]"
+        # REF- - Store exchangeId as CorrelationId
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+        # REF- - Set property "requestId" to the initial "parent" correlationId
+        - method: setProperty
+          key: parentId
+          value:
+            type: "simple"
+            expression: "${exchangeId}"
+        # REF-ZCP - Loop over SQL statements
+        - method: split
+          expressions:
+            - type: simple
+              expression: "${exchangeProperty.placeholders[sql]}"
+          steps:
+            # REF-YPH - Set property "sourceSqlStatement" to select statement
+            - method: setProperty
+              key: sourceSqlStatement
+              value:
+                type: "simple"
+                expression: "${body[sourceSqlStatement]}"
+            - method: setProperty
+              key: checkpointKey
+              value:
+                type: simple
+                expression: ${body[checkpointKey]}
+            - method: setProperty
+              key: checkpointName
+              value:
+                type: simple
+                expression: ${body[checkpointName]}
+            - method: setProperty
+              key: checkpointDefault
+              value:
+                type: simple
+                expression: ${body[checkpointDefault]}
+            - method: setProperty
+              key: checkpointEnabled
+              value:
+                type: simple
+                expression: ${body[checkpointEnabled]}
+            - method: setProperty
+              key: checkpointType
+              value:
+                type: simple
+                expression: ${body[checkpointType]}
+            - method: log
+              level: DEBUG
+              message: "CHECKPOINT ENABLED = [${exchangeProperty[checkpointEnabled]}]"
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty[checkpointEnabled]} == true"
+                  steps:
+                    # REF- - Read from checkpoint
+                    - method: checkpoint
+                      properties:
+                        action: "read"
+                        name: "${exchangeProperty[checkpointName]}"
+                        type: "${exchangeProperty[checkpointType]}"
+                        default: "${exchangeProperty[checkpointDefault]}"
+                        enabled: "${exchangeProperty[checkpointEnabled]}"
+            # REF- - Set header "Integration_HubFreemarkerTemplate" to the source SQL statement
+            - method: setHeader
+              key: Integration_HubFreemarkerTemplate
+              value:
+                type: "simple"
+                expression: "${body[sourceSqlStatement]}"
+            # REF- - Compile FTL template
+            - method: to
+              component: freemarker
+              properties:
+                resourceUri: dummy
+                allowTemplateFromHeader: true
+                allowContextMapAll: true
+            - method: log
+              level: INFO
+              message: "Source SQL Statement = '${body}'"
+            # REF-2JD - Run query against database
+            - method: to
+              component: jdbc
+              properties:
+                dataSourceName: "$[[sourceDataSource]]"
+                useHeadersAsParameters: true
+            # REF-3DU - Loop over returned rows
+            - method: split
+              expressions:
+                - type: simple
+                  expression: "${body}"
+              steps:
+                # REF- - Push body keys to headers
+                - method: process
+                  classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+                # REF-GPD - Store incoming message as "internalOrigMsg" header
+                - method: setProperty
+                  key: internalOrigMsg
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # REF-S7O - If log received is enabled
+                - method: isslog
+                  message: "received() | ${bodyAs(String)}"
+                  type: received
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logReceived]]
+                  writeToDatabase: $[[logReceived]]
+                # REF- - Handle allow list
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[allowList]} != null && ${exchangeProperty.placeholders[allowList]} != 'NOT_SET' && ${exchangeProperty.placeholders[allowList]} is 'java.util.List' && ${exchangeProperty.placeholders[allowList].size()} > 0"
+                      steps:
+                        - method: loop
+                          expression:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[allowList].size()}"
+                          copy: true
+                          steps:
+                            - method: setProperty
+                              key: allowListExpression
+                              value:
+                                type: "simple"
+                                expression: "${exchangeProperty.placeholders[allowList].get(${header.Integration_HubLoopIndex})}"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: groovy
+                                    expression: |
+                                      allowListExpression = exchange.properties.get("allowListExpression")
+                                      language = exchange.getContext().resolveLanguage("simple")
+                                      predicate = language.createPredicate(allowListExpression)
+                                      return predicate.matches(exchange);
+                                  steps:
+                                    - method: log
+                                      level: "DEBUG"
+                                      message: "allowList expression(${exchangeProperty.allowListExpression}) matches"
+                                    - method: setProperty
+                                      key: allowListCheck
+                                      value:
+                                        type: "constant"
+                                        expression: true
+                              otherwise:
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "allowList expression(${exchangeProperty.allowListExpression}) does not match"
+                                - method: setProperty
+                                  key: allowListCheck
+                                  value:
+                                    type: groovy
+                                    expression: |
+                                      prop = exchange.properties.getOrDefault("allowListCheck", "NOT_SET")
+                                      if (prop == "NOT_SET") {
+                                        return false;
+                                      } else {
+                                        return prop;
+                                      }
+                  otherwise:
+                    - method: log
+                      level: "DEBUG"
+                      message: "No allowList definitions"
+                - method: choice
+                  when:
+                    - predicate:
+                        type: "simple"
+                        expression: "${exchangeProperty.allowListCheck.toString()} =~ 'false'"
+                      steps:
+                        - method: log
+                          level: "DEBUG"
+                          message: "Message not allowed by allowList"
+                        - method: isslog
+                          message: "dropped | Allow list expression (${exchangeProperty.allowListExpression})) does not match | ${bodyAs(String)}"
+                          type: dropped
+                          writeToFile: $[[logDropped]]
+                          writeToDatabase: $[[logDropped]]
+                          queueSize: $[[uiMessageLimit]]
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: '{ "status": "dropped", "requestId": "${exchangeId}"}'
+                        - method: stop
+                # REF- - Handle deny list
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[denyList]} != null && ${exchangeProperty.placeholders[denyList]} != 'NOT_SET' && ${exchangeProperty.placeholders[denyList]} is 'java.util.List' && ${exchangeProperty.placeholders[denyList].size()} > 0"
+                      steps:
+                        - method: loop
+                          expression:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[denyList].size()}"
+                          copy: true
+                          steps:
+                            - method: setProperty
+                              key: denyListExpression
+                              value:
+                                type: "simple"
+                                expression: "${exchangeProperty.placeholders[denyList].get(${header.Integration_HubLoopIndex})}"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: groovy
+                                    expression: |
+                                      denyListExpression = exchange.properties.get("denyListExpression")
+                                      language = exchange.getContext().resolveLanguage("simple")
+                                      predicate = language.createPredicate(denyListExpression)
+                                      return predicate.matches(exchange);
+                                  steps:
+                                    - method: log
+                                      level: "DEBUG"
+                                      message: "denyList expression(${exchangeProperty.denyListExpression}) matches"
+                                    - method: setProperty
+                                      key: denyListCheck
+                                      value:
+                                        type: "constant"
+                                        expression: true
+                              otherwise:
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "denyList expression(${exchangeProperty.denyListExpression}) does not match"
+                                - method: setProperty
+                                  key: denyListCheck
+                                  value:
+                                    type: groovy
+                                    expression: |
+                                      prop = exchange.properties.getOrDefault("denyListCheck", "NOT_SET")
+                                      if (prop == "NOT_SET") {
+                                        return true;
+                                      } else {
+                                        return prop;
+                                      }
+                  otherwise:
+                    - method: log
+                      level: "DEBUG"
+                      message: "No denyList definitions"
+                - method: choice
+                  when:
+                    - predicate:
+                        type: "simple"
+                        expression: "${exchangeProperty.denyListCheck.toString()} =~ 'true'"
+                      steps:
+                        - method: log
+                          level: "DEBUG"
+                          message: "Message not allowed by denyList"
+                        - method: isslog
+                          message: "dropped | Deny list expression (${exchangeProperty.denyListExpression})) does not allow this message | ${bodyAs(String)}"
+                          type: dropped
+                          writeToFile: $[[logDropped]]
+                          writeToDatabase: $[[logDropped]]
+                          queueSize: $[[uiMessageLimit]]
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: '{ "status": "dropped", "requestId": "${exchangeId}"}'
+                        - method: stop
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[metricArray]} != null && ${exchangeProperty.placeholders[metricArray]} is 'java.util.List' && ${exchangeProperty.placeholders[metricArray].size()} > 0"
+                      steps:
+                        - method: loop
+                          expression:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[metricArray].size()}"
+                          copy: true
+                          steps:
+                            - method: setProperty
+                              key: currentMetric
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty.placeholders[metricArray].get(${header.Integration_HubLoopIndex})}"
+                            - method: setProperty
+                              key: indexPath
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty.currentMetric[path]}"
+                            - method: setProperty
+                              key: metricName
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty.currentMetric[metricName]}"
+                            - method: setProperty
+                              key: metricTags
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty.currentMetric[tags]}"
+                            - method: setProperty
+                              key: metricPayloadCandidate
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty.currentMetric[datahubPayload]}"
+                            - method: setProperty
+                              key: datahubPayload
+                              value:
+                                type: groovy
+                                expression: |
+                                  import groovy.json.JsonSlurper
+
+                                  def payload     = exchange.properties.get("metricPayloadCandidate") ?: [:]
+                                  def language    = exchange.getContext().resolveLanguage("simple")
+                                  def jsonObject  = [:]
+
+                                  def resolveValue
+                                  resolveValue = { val ->
+                                    if (val instanceof String) {
+                                      return val.replaceAll(/\$\{([^\}]+)\}/) { m ->
+                                        def expr = m[0]  // includes ${}
+                                        def out  = language.createExpression(expr).evaluate(exchange, String)
+                                        return out != null ? out : null
+                                      }
+                                    } else if (val instanceof Map) {
+                                      def nested = [:]
+                                      val.each { k, v -> nested[k] = resolveValue(v) }
+                                      return nested
+                                    } else if (val instanceof List) {
+                                      return val.collect { resolveValue(it) }
+                                    } else {
+                                      return (val != null ? val : "null")
+                                    }
+                                  }
+
+                                  // Build base payload
+                                  payload.each { k, v -> jsonObject[k] = resolveValue(v) }
+
+                                  // Inject 'name' from metricName if not already present
+                                  def mName = exchange.properties.get("metricName")
+                                  if (mName != null && mName.toString().trim()) {
+                                    if (!jsonObject.containsKey("name") ||
+                                        jsonObject["name"] == null ||
+                                        jsonObject["name"].toString().trim().isEmpty()) {
+                                      jsonObject["name"] = mName
+                                    }
+                                  }
+
+                                  def normalizeTags = { src ->
+                                    if (src == null) return []
+                                    def toList = { v -> (v instanceof List) ? v : [v] }
+
+                                    def flat = []
+                                    toList(src).each { item ->
+                                      if (item instanceof Map) {
+                                        // If tags arrive as {"0":"a","1":"b"}, take values only
+                                        flat.addAll(item.values())
+                                      } else if (item instanceof List) {
+                                        flat.addAll(item)
+                                      } else {
+                                        flat.add(item)
+                                      }
+                                    }
+
+                                    flat = flat.collect { t ->
+                                      if (t == null) return null
+                                      def s = t.toString()
+                                      s = s.replaceAll(/\$\{([^\}]+)\}/) { m ->
+                                        def expr = m[0]
+                                        def out  = language.createExpression(expr).evaluate(exchange, String)
+                                        return out != null ? out : ""
+                                      }
+                                      s.trim()
+                                    }.findAll { it }
+
+                                    // De-duplicate, preserve order
+                                    def seen = new LinkedHashSet()
+                                    def out  = []
+                                    flat.each { if (seen.add(it)) out << it }
+                                    return out
+                                  }
+
+                                  def payloadTags = normalizeTags(jsonObject.get("tags"))
+                                  def metricTags  = normalizeTags(exchange.properties.get("metricTags"))
+                                  jsonObject["tags"] = (payloadTags + metricTags).unique()
+
+                                  def normalizeMetadata = { md ->
+                                    if (md == null) return null
+                                    if (md instanceof Map || md instanceof List) return md
+                                    if (md instanceof String) {
+                                      def s = md.trim()
+                                      // If it looks like JSON, try to parse; else leave as string
+                                      if ((s.startsWith("{") && s.endsWith("}")) ||
+                                          (s.startsWith("[") && s.endsWith("]"))) {
+                                        try {
+                                          return new JsonSlurper().parseText(s)
+                                        } catch (ignored) {
+                                          // leave as-is if not valid JSON
+                                          return md
+                                        }
+                                      }
+                                      return md
+                                    }
+                                    return md
+                                  }
+
+                                  if (jsonObject.containsKey("metadata")) {
+                                    jsonObject["metadata"] = normalizeMetadata(jsonObject["metadata"])
+                                  }
+
+                                  return jsonObject
+                            - method: setProperty
+                              key: internalProcessedMessage
+                              value:
+                                type: simple
+                                expression: ${exchangeProperty.datahubPayload}
+                            - method: setBody
+                              expression:
+                                type: simple
+                                expression: "${exchangeProperty.internalProcessedMessage}"
+                            # Marshal body before sending to Datahub
+                            - method: marshal
+                              type: json
+                            - method: log
+                              level: DEBUG
+                              message: "Payload before sending to Datahub - ${body}"
+                            # REF- - Debug message
+                            - method: log
+                              level: "DEBUG"
+                              message: "writing to processed file"
+                            # REF-4MH - Log message to file
+                            - method: isslog
+                              message: "parentId=${exchange.properties[parentId]} | processed() | ${body}"
+                              type: processed
+                              queueSize: $[[uiMessageLimit]]
+                              writeToFile: $[[logProcessed]]
+                              writeToDatabase: $[[logProcessed]]
+                            # Set the endpoint URL
+                            - method: setHeader
+                              key: Integration_HubHttpPath
+                              value:
+                                type: simple
+                                expression: "${exchangeProperty[indexPath]}"
+                            # Send payload to Datahub
+                            - method: to
+                              component: http
+                              properties:
+                                httpMethod: POST
+                                dataSource: "$[[datahubInstance]]"
+                                connectTimeout: "$[[connectTimeout]]"
+                                connectionRequestTimeout: "$[[connectionRequestTimeout]]"
+                                throwExceptionOnFailure: false
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: simple
+                                    expression: "${header.Integration_HubHttpResponseCode} != 201"
+                                  steps:
+                                    - method: isslog
+                                      message: "parentId=${exchange.properties[parentId]} | failed() | Error encountered when sending the payload to datahub | response=[${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}] - ${body}"
+                                      type: failed
+                                      queueSize: $[[uiMessageLimit]]
+                                      writeToFile: $[[logFailed]]
+                                      writeToDatabase: $[[logFailed]]
+                                    - method: stop
+                              otherwise:
+                                - method: isslog
+                                  message: "parentId=${exchange.properties[parentId]} | success() | message=${exchange.properties['internalProcessedMessage']} | response=[${header.Integration_HubHttpResponseCode} - ${header.Integration_HubHttpResponseText}]"
+                                  type: success
+                                  queueSize: $[[uiMessageLimit]]
+                                  writeToFile: $[[logSuccess]]
+                                  writeToDatabase: $[[logSuccess]]
+                                - method: choice
+                                  when:
+                                    - predicate:
+                                        type: simple
+                                        expression: "${exchangeProperty[checkpointEnabled]} == true"
+                                      steps:
+                                        # Set Body back to internalOrigMsg
+                                        - method: setBody
+                                          expression:
+                                            type: simple
+                                            expression: "${exchangeProperty.internalOrigMsg}"
+                                        # REF- - Write to checkpoint
+                                        - method: checkpoint
+                                          properties:
+                                            action: "write"
+                                            name: "${exchangeProperty.checkpointName}"
+                                            key: "${exchangeProperty.checkpointKey}"
+                                            default: "${exchangeProperty.checkpointDefault}"
+                                            type: "${exchangeProperty.checkpointType}"
+                                            enabled: "${exchangeProperty.checkpointEnabled}"
+                  otherwise:
+                    - method: log
+                      level: ERROR
+                      message: "No objects in metricArray [${exchangeProperty.placeholders[metricArray]}]"
