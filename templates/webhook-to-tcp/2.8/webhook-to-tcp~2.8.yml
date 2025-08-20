@@ -1408,10 +1408,10 @@ shared:
                           def regexReplacement = regexListItem.get("replacement")
 
                           return currentBody.replaceAll(regexPattern, regexReplacement)
-        - method: setBody
-          expression:
-            type: "simple"
-            expression: "${exchangeProperty.sanitizedBody}"
+                    - method: setBody
+                      expression:
+                        type: "simple"
+                        expression: "${exchangeProperty.sanitizedBody}"
         # REF-4IZ - Data decoding
         - method: choice
           when:
