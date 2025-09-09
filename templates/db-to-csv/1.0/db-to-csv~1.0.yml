@@ -1,0 +1,444 @@
+shared:
+  templates:
+    "[db-to-csv~1.0]":
+      version: "1.0"
+      minimumCompatibilityVersion: 2.2.0
+      description: "The db-to-csv template provides functionality to query a database and export the results to a CSV file, via an integration-hub pipeline."
+      placeholders:
+        "sql":
+          description: "Map of SQL statements"
+          bind-to-exchange: true
+          required: true
+          type: "array"
+        "schedule":
+          description: "The cron string that defines the schedule for this pipeline"
+          required: false
+          defaultValue: "0 0 0 * * ?"
+          type: "string"
+        "database":
+          description: "The data source name of the database to query from"
+          required: true
+          type: "string"
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logDropped":
+          description: "To log all dropped data, set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+          type: "integer"
+      uiSchema:
+        type: object
+        properties:
+          listenerHeader:
+            type: header
+            title: Database Connection
+          listenerGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              listenerConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  listenerConfigTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: Connection Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### Connection Properties
+
+                              The following properties can be specified for the Database Connection.
+
+                              | property | description |
+                              | -- | -- |
+                              | Schedule | The cron string that defines the schedule for this pipeline |
+                              | Datasource | The dataSource to use for the database connection |
+                  listenerConfigValue:
+                    type: object
+                    properties:
+                      listenerConnection:
+                        type: grid
+                        ui:
+                          columns:
+                            - 30%
+                            - auto
+                          alignRow: baseline
+                        properties:
+                          schedule:
+                            type: cron
+                            title: Schedule
+                          database:
+                            title: Datasource
+                            type: datasource
+                            ui:
+                              dataSourceType: jdbc
+          destinationSection:
+            type: object
+            properties:
+              destinationHeader:
+                type: header
+                title: Destination Configuration
+              destinationContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  commandConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      destinationTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Destination Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Destination Properties
+
+                                  The following properties can be specified for the CSV output.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | SQL Statement | Define the SQL statement that will be used to retrieve the data |
+                                  | Absolute Filename | Specify the full path to the output file that will be populated with the CSV data |
+                      destinationValue:
+                        type: object
+                        properties:
+                          destinationGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                              alignRow: baseline
+                            properties:
+                              sql:
+                                type: array
+                                title: CSV Exports
+                                ui:
+                                  columns:
+                                    - auto
+                                  areas:
+                                    - sqlStatement sqlStatement sqlStatement sqlStatement
+                                    - filename filename filename filename
+                                  indexed: true
+                                propertyTemplate:
+                                  sqlStatement:
+                                    type: string
+                                    title: SQL Statement
+                                    description: 'SQL statement to query data from the database'
+                                    ui:
+                                      rows: 4
+                                  filename:
+                                    type: string
+                                    title: Absolute Filename
+                                    validation:
+                                      regex: ^\/(?:[^\/\0]+\/)*[^\/\0]+$
+                                      message: specify a valid filename
+                                      required: true
+                                    help:
+                                      icon: info-circle
+                                      content: |-
+                                        ### Absolute filename
+
+                                        Specify the full path to the output file that will be populated with the CSV data<br /><br/>For example: `/opt/ISS/integration-hub/work/csvOutput.csv`
+          optionalSettings:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: '=='
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of failed/dropped/success/processed/received messages to display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages received
+                      logDropped:
+                        defaultValue: true
+                        type: checkbox
+                        title: log dropped messages
+                      logProcessed:
+                        type: checkbox
+                        title: log processed messages
+                        defaultValue: true
+                      logSuccess:
+                        defaultValue: true
+                        type: checkbox
+                        title: log success messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed messages
+      pipelineFlow:
+        - type: block
+          label: Source Datasource
+          icon: database
+        - type: pipe
+          children:
+            - type: arrow
+              forward: true
+              pullBackward: true
+            - type: block
+              label: query
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          icon: file-csv
+          label: Export to CSV
+      exceptions:
+        # REF-EJC - Catch generic exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "Error processing data: ${exception.stacktrace}"
+            - method: isslog
+              message: "parentId=${headers.parentId} | failed() | Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+      steps:
+        # REF-VMX - Run schedule
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            cron: "$[[schedule]]"
+            triggerStartDelay: 0
+        - method: setProperty
+          key: parentId
+          value:
+            type: "simple"
+            expression: "${exchangeId}"
+        # REF- - Store exchangeId as CorrelationId
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+        # REF-ZCP - Loop over SQL statements
+        - method: split
+          expressions:
+            - type: simple
+              expression: "${exchangeProperty.placeholders[sql]}"
+          steps:
+            # REF-YPH - Set property "sourceSqlStatement" to select statement
+            - method: setProperty
+              key: sqlStatement
+              value:
+                type: "simple"
+                expression: "${body[sqlStatement]}"
+            # REF-COY - Set property "filename" for CSV filename
+            - method: setProperty
+              key: propertySetter
+              value:
+                type: groovy
+                expression: |
+                  def filePath = body.filename
+
+                  // Find the last occurrence of '/' to split directory and filename
+                  int lastSlashIndex = filePath.lastIndexOf('/')
+                  if (lastSlashIndex >= 0) {
+                      def directory = filePath[0..lastSlashIndex]
+                      def filename = filePath[(lastSlashIndex + 1)..-1]
+
+                      exchange.properties.put("filename", filename)
+                      exchange.properties.put("directory", directory)
+                  } else {
+                      // If no '/' found, consider the entire path as the filename
+                      exchange.properties.put("filename", filePath)
+                      exchange.properties.put("directory", "")
+                  }
+
+                  return
+            - method: log
+              level: INFO
+              message: "Destination Directory -- ${exchangeProperty.directory}"
+            - method: log
+              level: INFO
+              message: "Destination Filename -- ${exchangeProperty.filename}"
+            - method: log
+              level: WARN
+              message: "Directory = 1=${exchange.properties['directory']} 2=${exchangeProperty.directory}, Filename = 1=${exchange.properties['filename']} 2=${exchangeProperty.filename}"
+            # REF- - Set header "Integration_HubFreemarkerTemplate" to the source SQL statement
+            - method: setHeader
+              key: Integration_HubFreemarkerTemplate
+              value:
+                type: "simple"
+                expression: "${body[sqlStatement]}"
+            # REF- - Compile FTL template
+            - method: to
+              component: freemarker
+              properties:
+                resourceUri: dummy
+                allowTemplateFromHeader: true
+                allowContextMapAll: true
+            - method: log
+              level: INFO
+              message: "Source SQL Statement = '${body}'"
+            # REF-2JD - Run query against database
+            - method: to
+              component: jdbc
+              properties:
+                dataSourceName: "$[[database]]"
+            - method: isslog
+              message: "received | ${bodyAs(String)}"
+              type: received
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logReceived]]
+              writeToDatabase: $[[logReceived]]
+            - method: setProperty
+              key: csvHeaders
+              value:
+                type: groovy
+                expression: |
+                  def headers = body.collectMany { it.keySet() }.unique().toArray()
+                  def csvHeaders = new StringBuilder()
+                  csvHeaders.append(headers.join(',')).append('\n')
+                  return csvHeaders
+            - method: log
+              level: WARN
+              message: "CSV Headers -- ${exchangeProperty.csvHeaders}"
+            - method: marshal
+              type: csv
+              properties:
+                delimiter: ","
+                header: true
+                ignoreEmptyLines: true
+                trim: true
+                quote: '"'
+                quoteModel: ALL
+            - method: log
+              level: WARN
+              message: "Body after CSV marshal -- ${body}"
+            - method: convertBodyTo
+              type: String
+            - method: setBody
+              expression:
+                type: groovy
+                expression: |
+                  def csvHeaders = exchange.properties.csvHeaders
+                  def csvWithHeaders = csvHeaders + body
+                  return csvWithHeaders
+            - method: log
+              level: WARN
+              message: "Added headers to CSV body -- ${body}"
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | processed() | ${bodyAs(String)}"
+              type: processed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logProcessed]]
+              writeToDatabase: $[[logProcessed]]
+            - method: dynamic-to
+              component: file
+              properties:
+                directoryName: "${exchangeProperty.directory}"
+                fileName: "${exchangeProperty.filename}"
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | success() | Updated ${exchangeProperty.directory}${exchangeProperty.filename} | Contents = ${bodyAs(String)}"
+              type: success
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logSuccess]]
+              writeToDatabase: $[[logSuccess]]
