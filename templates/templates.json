@@ -285,6 +285,16 @@
                     "minimumCompatibilityVersion": "2.2.0"
                 }
             ]
+        },
+        {
+            "name": "db-to-csv",
+            "description": "The db-to-csv template provides functionality to query a database and export the results to a CSV file, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "2.2.0"
+                }
+            ]
         }
     ]
 }
