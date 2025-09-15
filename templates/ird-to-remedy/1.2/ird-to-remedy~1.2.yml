@@ -1406,6 +1406,8 @@ shared:
                                       sync: true
                                       textline: true
                                       decoderMaxLineLength: 65536
+                                      keepAlive: false
+                                      disconnect: true
 
                                   - method: log
                                     level: DEBUG
