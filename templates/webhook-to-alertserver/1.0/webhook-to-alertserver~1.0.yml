@@ -1,0 +1,2501 @@
+shared:
+  templates:
+    "[webhook-to-alertserver~1.0]":
+      version: 1.0
+      minimumCompatibilityVersion: 2.2.0
+      description: "The webhook-to-alertserver template provides functionality to transfer, filter/transform and send from webhook listener to alertserver, via an integration-hub pipeline."
+      placeholders:
+        "protocol":
+          description: "The http protocol for the webhook listener"
+          required: false
+          type: "string"
+          defaultValue: "https"
+
+        "hostname":
+          description: "Host to bound the listner to"
+          required: false
+          type: "string"
+          defaultValue: "0.0.0.0"
+
+        "path":
+          description: "The path to listen on for requests"
+          required: false
+          type: "string"
+          defaultValue: ""
+
+        "port":
+          description: "Target port number allocated for third party applications"
+          required: false
+          type: "integer"
+          defaultValue: "6780"
+
+        "sslContextParameters":
+          description: "Reference to the ssl configuration to enable SSL on the pipeline"
+          required: false
+          defaultValue: "#IssSslConfig"
+          type: "string"
+
+        "apiKey":
+          description: "Only requests with this present will be able to process data"
+          bind-to-exchange: true
+          required: false
+          defaultValue: ""
+          valueType: "encrypted"
+
+        "authEnabled":
+          description: "Toggle basic authentication"
+          required: false
+          defaultValue: "false"
+          type: "boolean"
+
+        "users":
+          description: "Map of usernames and passwords"
+          required: false
+          type: "map"
+          defaultValue: ""
+
+        "disableThrottling":
+          description: "Toggle to enable / disable throttling of incoming messages"
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+        "throttleCount":
+          description: "Maximum number of incoming messages that can be ingested within the defined throttle period"
+          required: false
+          type: "string"
+          defaultValue: 10
+
+        "throttlePeriod":
+          description: "The time period during which the throttle count is valid for"
+          required: false
+          type: "string"
+          defaultValue: "10s"
+
+        "preprocessFilters":
+          description: "Array of expressions, where if matched, prevents further processing"
+          required: false
+          defaultValue: "NOT_SET"
+          bind-to-exchange: true
+          type: "array"
+
+        "alertLookupDatasource":
+          description: "The name of the datasource that will be used to lookup alerts"
+          required: true
+          type: "string"
+
+        "alertServerHost":
+          description: "The hostname for the AlertServer connection"
+          type: "string"
+          required: false
+          defaultValue: "127.0.0.1"
+
+        "eventDaemonHost":
+          description: "The hostname for the EventDaemon connection - as required for AlertLookup"
+          type: "string"
+          required: false
+          defaultValue: "127.0.0.1"
+
+        "eventDaemonPort":
+          description: "The port for the EventDaemon connection - as required for AlertLookup"
+          type: "string"
+          required: false
+          defaultValue: "35000"
+
+        "alertServerPort":
+          description: "The port for the AlertServer connection"
+          type: "string"
+          required: false
+          defaultValue: "30000"
+
+        "preprocessHeaders":
+          description: ""
+          required: false
+          defaultValue: "NOT_SET"
+          bind-to-exchange: true
+          type: "array"
+
+        "allowList":
+          bind-to-exchange: true
+          description: "List of logic statements to determine if the request can proceed"
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+
+        "denyList":
+          bind-to-exchange: true
+          description: "List of logic statements to halt the request"
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+
+        "globalAlertLookupExpression":
+          bind-to-exchange: true
+          description: ""
+          required: false
+          defaultValue: "NOT_SET"
+          type: "string"
+
+        "filters":
+          bind-to-exchange: true
+          description: "List of filters to match and format the data"
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+
+        "newlinePlaceholder":
+          description: "String to replace newline characters values with"
+          required: false
+          defaultValue: " "
+          type: "string"
+
+        "blankPlaceholder":
+          description: "String to replace blank values with"
+          required: false
+          defaultValue: "N/A"
+          type: "string"
+
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+        "logDropped":
+          description: "To log all dropped data, set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+          type: "integer"
+
+      uiSchema:
+        type: object
+        properties:
+          listenerHeader:
+            type: header
+            title: Webhook Listener
+          listenerGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              listenerConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  listenerConfigTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: Listener Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### Webhook Listener Properties
+
+                              The following properties can be specified for the Webhook Listener.
+
+                              | property | description |
+                              | -- | -- |
+                              | Protocol | The http protocol for the webhook listener |
+                              | Hostname / IP | Hostname / IP address to bind the listener to |
+                              | Port | The port number to bind to the listener |
+
+                              ### Optional Settings
+
+                              | property | description |
+                              | -- | -- |
+                              | Path | The path to listen on for requests |
+                              | sslContextParameters | Reference to the ssl configuration to enable SSL on the pipeline |
+                              | API Key | Only requests with this present will be able to process data |
+
+                              #### Basic Auth
+
+                              | property | description |
+                              | -- | -- |
+                              | Enable Basic Auth | Toggle basic authentication |
+                              | Users | Map of usernames and passwords |
+
+                              #### Throttling
+
+                              | property | description |
+                              | -- | -- |
+                              | Throttle Count | Maximum number of incoming messages that can be ingested within the defined throttle period |
+                              | Throttle Period | The time period during which the throttle count is valid for |
+
+                  listenerConfigValue:
+                    type: object
+                    properties:
+                      listenerConnection:
+                        type: grid
+                        ui:
+                          areas:
+                            - protocol hostname hostname port
+                            - sslContextParameters sslContextParameters sslContextParameters sslContextParameters
+                          columns:
+                            - 15%
+                            - 65%
+                            - auto
+                          alignRow: baseline
+                        properties:
+                          protocol:
+                            type: select
+                            title: Protocol
+                            defaultValue: HTTPS
+                            ui:
+                              options:
+                                - HTTP
+                                - HTTPS
+                          hostname:
+                            type: string
+                            title: Hostname / IP
+                            defaultValue: "0.0.0.0"
+                          port:
+                            type: number
+                            title: Port
+                            defaultValue: 6780
+                      optionalSettings:
+                        type: expansion-panel
+                        title: Optional Settings
+                        ui:
+                          elevation: 2
+                        properties:
+                          proxyGrid:
+                            type: object
+                            properties:
+                              noneToggleSettings:
+                                type: grid
+                                ui:
+                                  areas:
+                                    - . . . .
+                                    - sslContextParameters sslContextParameters sslContextParameters sslContextParameters
+                                    - path path apiKey apiKey
+                                properties:
+                                  sslContextParameters:
+                                    type: sslcontext
+                                    title: sslContextParameters
+                                    defaultValue: "#IssSslConfig"
+                                  path:
+                                    type: string
+                                    title: Path
+                                  apiKey:
+                                    type: password
+                                    title: API Key
+                              authEnabled:
+                                type: switch
+                                title: Enable Basic Auth
+                                defaultValue: false
+                              conditional-section-authenabled:
+                                type: conditional
+                                expression:
+                                  left: $authEnabled
+                                  operator: "=="
+                                  right: true
+                                properties:
+                                  users:
+                                    type: map
+                                    title: Users
+                                    ui:
+                                      keyPlaceholder: Username
+                                    valueSchema:
+                                      type: password
+                                      ui:
+                                        placeholder: Password
+                              throttleEnabled:
+                                type: switch
+                                title: Enable Throttling
+                                defaultValue: false
+                              conditional-section-throttling:
+                                type: conditional
+                                expression:
+                                  left: $throttleEnabled
+                                  operator: "=="
+                                  right: true
+                                properties:
+                                  throttleGrid:
+                                    type: grid
+                                    ui:
+                                      columns:
+                                        - auto
+                                        - auto
+                                    properties:
+                                      throttleCount:
+                                        type: number
+                                        title: Throttle Count
+                                        defaultValue: 10
+                                      throttlePeriod:
+                                        title: Throttle Period
+                                        type: string
+                                        defaultValue: 10s
+          alertLookupSection:
+            type: object
+            properties:
+              alertLookupHeader:
+                type: header
+                title: Alert Lookup
+              alertLookupContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  commandConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      alertLookupTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Alert Lookup Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Desintation Properties
+
+                                  When looking up an alert. This pipeline will first attempt to find the alert in the **EventDaemon**. If no alert is found, the **Alert Lookup Datasource** will be used.
+
+                                  The following properties can be specified for Alert Lookup.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Alert Lookup Datasource | The name of the datasource that will be used to lookup alerts<br></br>_This datasource should be configured to use the `besdb` database_ |
+                                  | EventDaemon Hostname / IP Address | The hostname / IP address of the system that is running Event Daemon |
+                                  | EventDaemon Port | The port that the EventDaemon is listening on |
+                      alertLookupValue:
+                        type: object
+                        properties:
+                          destinationGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - 30%
+                                - 35%
+                                - auto
+                              alignRow: baseline
+                            properties:
+                              alertLookupDatasource:
+                                type: datasource
+                                title: Alert Lookup Datasource
+                                ui:
+                                  dataSourceType: jdbc
+                              eventDaemonHost:
+                                type: string
+                                title: EventDaemon Hostname / IP Address
+                                defaultValue: "127.0.0.1"
+                              eventDaemonPort:
+                                type: string
+                                title: "EventDaemon Port"
+                                defaultValue: "35000"
+          filterSection:
+            type: object
+            properties:
+              filterHeader:
+                type: header
+                title: Filter Configuration
+              filterContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  commandConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      filterTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Filter Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ## Filter Properties
+
+                                  The following properties can be specified for the filters.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Expression | The expression which determines the action to take based on the incoming message |
+                                  | AlertId | The GMOM alertId from the incoming message |
+                                  | Process Last Alert Only | When enabled, only processes the last alert from the incoming message<br></br><blockquote><i>This feature is useful in cases where multiple objects share identical alertIds</i></blockquote> |
+
+                                  ### Actions
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Action Type | The type of action to execute in the AlertServer |
+
+                                  > Depending on the action type, the following fields are required
+
+                                  `[assignAlert], [closeAlert]`
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | User | The name of the user **in BES** that is responsble for this action |
+
+                                  `[addNote]`
+                                  | property | description |
+                                  | -- | -- |
+                                  | Value | The value to add to the alert |
+
+                      filterValue:
+                        type: object
+                        properties:
+                          filterGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                            properties:
+                              filters:
+                                type: array
+                                title: filter and format messages
+                                ui:
+                                  columns:
+                                    - auto
+                                  areas:
+                                    - expression expression alertId processLastAlertOnly
+                                    - actions actions actions actions
+                                    - . . . .
+                                  addLabel: Filter Expression
+                                propertyTemplate:
+                                  expression:
+                                    type: string
+                                    title: Expression
+                                    help:
+                                      icon: info-circle
+                                      content: >-
+                                        ### Simple Expressions
+
+
+                                        > **field** _operator_ **value**
+
+
+                                        ##### field: the field that referenced from the incoming
+                                        message. To match against the whole string use
+                                        **\${bodyAs(String)}** , to reference a specific field use
+                                        **\${body.hostname}**
+
+                                        ##### value: the value being tested against
+
+                                        ##### operators
+
+                                            ==          equals
+                                            =~          equals (case insensitive)
+                                            !=          does not equal
+                                            !=~         does not equal (case insensitive)
+                                            contains    contains string
+                                            !contains   does not contain
+                                            regex       matches regex expression
+                                            !regex      does not match regex expression
+                                            &&          AND multiple expressions
+                                            ||          OR multiple expressions
+
+                                        ##### See examples below
+
+                                            # match any string
+                                            ${bodyAs(String)} regex '(?s)(.*?)'
+                                            # incoming message contains 'this' but not 'that'
+                                            ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                                            # incoming message contains 'dog' or 'cat'
+                                            ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                                            # incoming message field 'username' equals 'ppadmin'
+                                            ${body.username} == 'ppadmin'
+                                            # incoming message field 'username' is not null
+                                            ${body.username} != null
+                                            # incoming message field 'origindate' equals todays date
+                                            ${body.origindate} == ${date:now:yyyyMMdd}
+                                  alertId:
+                                    type: string
+                                    title: AlertId
+                                  processLastAlertOnly:
+                                    type: checkbox
+                                    title: Process Last Alert Only
+                                    defaultValue: true
+                                  actions:
+                                    type: array
+                                    title: Actions
+                                    ui:
+                                      areas:
+                                        - actionType actionType actionType actionType
+                                        - conditional-section-updateField conditional-section-updateField conditional-section-updateField conditional-section-updateField
+                                        - conditional-section-addNote conditional-section-addNote conditional-section-addNote conditional-section-addNote
+                                        - conditional-section-updateDB conditional-section-updateDB conditional-section-updateDB conditional-section-updateDB
+                                      addLabel: Action
+                                    propertyTemplate:
+                                      actionType:
+                                        type: select
+                                        title: Action Type
+                                        defaultValue: assignAlert
+                                        ui:
+                                          options:
+                                            - assignAlert
+                                            - closeAlert
+                                            - addNote
+                                      conditional-section-updateField:
+                                        type: conditional
+                                        expression:
+                                          left: $actionType
+                                          operator: "=="
+                                          right: "updateField"
+                                        properties:
+                                          fieldName:
+                                            type: string
+                                            title: Field Name
+                                          fieldValue:
+                                            type: string
+                                            title: Field Value
+                                      conditional-section-addNote:
+                                        type: conditional
+                                        expression:
+                                          left: $actionType
+                                          operator: "=="
+                                          right: "addNote"
+                                        properties:
+                                          fieldValue:
+                                            type: string
+                                            title: Field Value
+                                          note:
+                                            type: string
+                                            title: Note
+                                      conditional-section-updateDB:
+                                        type: conditional
+                                        expression:
+                                          left: $actionType
+                                          operator: "=="
+                                          right: "updateDB"
+                                        properties:
+                                          statement:
+                                            type: string
+                                            title: SQL Statement
+          destinationSection:
+            type: object
+            properties:
+              destinationHeader:
+                type: header
+                title: AlertServer Connection
+              destinationContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  commandConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      destinationTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: AlertServer Connection Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Desintation Properties
+
+                                  The following properties can be specified for the AlertServer Connection.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | AlertServer Hostname / IP | The hostname or IP address of the AlertServer |
+                                  | port | The port that AlertServer is listening on |
+                      destinationValue:
+                        type: object
+                        properties:
+                          destinationGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                                - auto
+                            properties:
+                              alertServerHost:
+                                type: string
+                                title: AlertServer Hostname / IP
+                                defaultValue: "127.0.0.1"
+                              alertServerPort:
+                                type: number
+                                title: AlertServer Port
+                                defaultValue: 30000
+          optionalSettings:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              togglePreprocessHeaders:
+                type: switch
+                title: Configure Pre-process Headers
+                defaultValue: false
+              conditional-section-preprocessHeaders:
+                type: conditional
+                expression:
+                  left: $togglePreprocessHeaders
+                  operator: '=='
+                  right: true
+                properties:
+                  preprocessHeaders:
+                    type: array
+                    title: Pre-processing Headers Override
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                    propertyTemplate:
+                      expression:
+                        type: text
+                        title: The expression to match
+                        help:
+                          icon: info-circle
+                          content: >-
+                            ### Simple Expressions
+
+
+                            > **field** _operator_ **value**
+
+
+                            ##### field: the field that referenced from the incoming
+                            message. To match against the whole string use
+                            **\${bodyAs(String)}** , to reference a specific field use
+                            **\${body.hostname}**
+
+                            ##### value: the value being tested against
+
+                            ##### operators
+
+                                ==          equals
+                                =~          equals (case insensitive)
+                                !=          does not equal
+                                !=~         does not equal (case insensitive)
+                                contains    contains string
+                                !contains   does not contain
+                                regex       matches regex expression
+                                !regex      does not match regex expression
+                                &&          AND multiple expressions
+                                ||          OR multiple expressions
+
+                            ##### See examples below
+
+                                # match any string
+                                ${bodyAs(String)} regex '(?s)(.*?)'
+                                # incoming message contains 'this' but not 'that'
+                                ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                                # incoming message contains 'dog' or 'cat'
+                                ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                                # incoming message field 'username' equals 'ppadmin'
+                                ${body.username} == 'ppadmin'
+                                # incoming message field 'username' is not null
+                                ${body.username} != null
+                                # incoming message field 'origindate' equals todays date
+                                ${body.origindate} == ${date:now:yyyyMMdd}
+                      headers:
+                        type: map
+                        title: Headers
+                        ui:
+                          keyPlaceholder: Header Name
+                        valueSchema:
+                          type: text
+                          ui:
+                            placeholder: Header Value
+              toggleAllowDenyList:
+                type: switch
+                title: Configure Allow/Deny List
+                defaultValue: false
+              conditional-section-allow-deny:
+                type: conditional
+                expression:
+                  left: $toggleAllowDenyList
+                  operator: '=='
+                  right: true
+                properties:
+                  allowList:
+                    type: array
+                    title: Allow list (process if expression is matched)
+                    ui:
+                      indexed: true
+                    help:
+                      icon: info-circle
+                      content: >-
+                        ### Simple Expressions
+
+
+                        > **field** _operator_ **value**
+
+
+                        ##### field: the field that referenced from the incoming
+                        message. To match against the whole string use
+                        **\${bodyAs(String)}** , to reference a specific field use
+                        **\${body.hostname}**
+
+                        ##### value: the value being tested against
+
+                        ##### operators
+
+                            ==          equals
+                            =~          equals (case insensitive)
+                            !=          does not equal
+                            !=~         does not equal (case insensitive)
+                            contains    contains string
+                            !contains   does not contain
+                            regex       matches regex expression
+                            !regex      does not match regex expression
+                            &&          AND multiple expressions
+                            ||          OR multiple expressions
+
+                        ##### See examples below
+
+                            # match any string
+                            ${bodyAs(String)} regex '(?s)(.*?)'
+                            # incoming message contains 'this' but not 'that'
+                            ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                            # incoming message contains 'dog' or 'cat'
+                            ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                            # incoming message field 'username' equals 'ppadmin'
+                            ${body.username} == 'ppadmin'
+                            # incoming message field 'username' is not null
+                            ${body.username} != null
+                            # incoming message field 'origindate' equals todays date
+                            ${body.origindate} == ${date:now:yyyyMMdd}
+                  denyList:
+                    type: array
+                    title: Deny list (drop if expression is matched)
+                    ui:
+                      indexed: true
+                    help:
+                      icon: info-circle
+                      content: >-
+                        ### Simple Expressions
+
+
+                        > **field** _operator_ **value**
+
+
+                        ##### field: the field that referenced from the incoming
+                        message. To match against the whole string use
+                        **\${bodyAs(String)}** , to reference a specific field use
+                        **\${body.hostname}**
+
+                        ##### value: the value being tested against
+
+                        ##### operators
+
+                            ==          equals
+                            =~          equals (case insensitive)
+                            !=          does not equal
+                            !=~         does not equal (case insensitive)
+                            contains    contains string
+                            !contains   does not contain
+                            regex       matches regex expression
+                            !regex      does not match regex expression
+                            &&          AND multiple expressions
+                            ||          OR multiple expressions
+
+                        ##### See examples below
+
+                            # match any string
+                            ${bodyAs(String)} regex '(?s)(.*?)'
+                            # incoming message contains 'this' but not 'that'
+                            ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                            # incoming message contains 'dog' or 'cat'
+                            ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                            # incoming message field 'username' equals 'ppadmin'
+                            ${body.username} == 'ppadmin'
+                            # incoming message field 'username' is not null
+                            ${body.username} != null
+                            # incoming message field 'origindate' equals todays date
+                            ${body.origindate} == ${date:now:yyyyMMdd}
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: '=='
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of failed/dropped/success/processed/received messages to
+                      display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages received
+                      logDropped:
+                        defaultValue: true
+                        type: checkbox
+                        title: log dropped messages
+                      logProcessed:
+                        type: checkbox
+                        title: log processed messages
+                        defaultValue: true
+                      logSuccess:
+                        defaultValue: true
+                        type: checkbox
+                        title: log success messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed messages
+
+      pipelineFlow:
+        - type: block
+          label: Webhook Listener
+          icon: webhook
+        - type: pipe
+          children:
+            - type: arrow
+              forward: true
+              pullBackward: true
+            - type: block
+              label: drop
+              icon: trash-can
+            - type: arrow
+              forward: true
+            - type: block
+              label: filter
+              icon: filter
+            - type: arrow
+              forward: true
+            - type: block
+              label: transform
+              icon: shuffle
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          icon: arrow-down-to-square
+          label: "Forward to AlertServer"
+
+      exceptions:
+        # REF-AOD - Catch data conversion exceptions
+        - catches:
+            - "com.fasterxml.jackson.core.JsonParseException"
+            - "com.fasterxml.jackson.core.io.JsonEOFException"
+            - "org.yaml.snakeyaml.parser.ParserException"
+          handled:
+            type: constant
+            expression: "true"
+          use-original-message: true
+          steps:
+            # REF-OCY - Log the error
+            - method: log
+              level: ERROR
+              message: "Error parsing body: ${body}. Caused by: ${exception.message}"
+            # REF-GXV - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-1SL - Set header "Content-Type" to "text/plain"
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
+            # REF-FG2 - Set body to message
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"status": "ERROR", "requestId": "${exchangeId}", "message": "Error parsing the body. Please check the logs for more details.", "body": ${body} }'
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | Error processing the body, please check the logs for more details. Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+        # REF-EJC - Catch genric exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "Error processing data: ${exception}"
+            # REF-ONW - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
+            # REF-31X - Set body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"status": "ERROR", "requestId": "${exchangeId}", "message": "Error processing the body.\nPlease check message channel logs for more details." }'
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | Error processing the body, please check the logs for more details. Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+        # REF-M0L - Catch No payload
+        - catches:
+            - "org.apache.integration_hub.NoTypeConversionAvailableException"
+            - "com.fasterxml.jackson.databind.exc.MismatchedInputException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "No content in the payload: ${exception}"
+            # REF-PO0 - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
+            # REF-31X - Set body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"status": "ERROR", "requestId": "${exchangeId}", "message": "${exception.message}" }'
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | No content in body. Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+        # REF-XAG - Failed to send on socket
+        - catches:
+            - "java.net.ConnectException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: "ERROR"
+              message: "Failed to send body to $[[alertServerHost]]:$[[alertServerPort]]"
+            # REF-4KD - Write log message to “failed” file
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed(${exchange.properties['filterExpression']}) | [dest=$[[alertServerHost]]:$[[alertServerPort]]], message=${exchange.properties['internalProcessedMessage']}]"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+        - catches:
+            - "org.apache.integration_hub.processor.ThrottlerRejectedExecutionException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: "ERROR"
+              message: "Throttle limit reached, dropping message: ${exception}"
+
+            # REF-PO0 - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
+            # REF-31X - Set body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"status": "ERROR", "requestId": "${exchangeId}", "message": "Throttle limit reached, dropping message: ${exception}" }'
+
+            - method: isslog
+              message: "dropped | ${exception}"
+              type: dropped
+              writeToFile: $[[logDropped]]
+              writeToDatabase: $[[logDropped]]
+              queueSize: $[[uiMessageLimit]]
+            - method: stop
+
+        - catches:
+          - "com.interlinksoftware.integrationhub.config.step.processor.exceptions.AlertLookupNotFoundException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "${exception}"
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 404
+            - method: setHeader
+              key: Content-Type
+              value:
+                type: constant
+                expression: application/json
+            # REF-31X - Set body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"status": 404, "requestId": "${exchangeId}", "message": "${exception.message}" }'
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | ${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+      steps:
+        # REF-36J - HTTP Listener
+        - method: from
+          component: rest
+          properties:
+            method: post
+            path: "$[[path]]"
+            component: jetty
+            uriTemplate: ""
+            scheme: "$[[protocol]]"
+            host: $[[hostname]]
+            port: $[[port]]
+            enableCORS: true
+            sendServerVersion: false
+            matchOnUriPrefix: true
+            sslContextParameters: "$[[sslContextParameters]]"
+            endpointProperties:
+              security:
+                enabled: $[[authEnabled]]
+                type: basic
+                realm: $[[pipeline.id]]
+                users: $[[users]]
+
+        - method: throttle
+          disabled: $[[throttleEnabled]]
+          count: $[[throttleCount]]
+          period: $[[throttlePeriod]]
+          rejectExecution: true
+
+        # REF- -  Api key check
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[apiKey]} != '' && ${exchangeProperty.placeholders[apiKey]} != null"
+              steps:
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${header.apiKey} != ${exchangeProperty.placeholders[apiKey]}"
+                      steps:
+                        # REF- - Log Error
+                        - method: log
+                          level: "ERROR"
+                          message: "apiKey '${header.apiKey}' is incorrect"
+                        # REF- - Set header "Integration_HubHttpResponseCode" to 400
+                        - method: setHeader
+                          key: Integration_HubHttpResponseCode
+                          value:
+                            type: constant
+                            expression: 401
+                        # REF- - Set body to error message
+                        - method: setBody
+                          expression:
+                            type: constant
+                            expression: '{"status": 401, "error": "Access Denied - API key is incorrect"}'
+                        # REF- - Set content type header
+                        - method: setHeader
+                          key: Content-Type
+                          value:
+                            type: constant
+                            expression: application/json
+                        - method: stop
+
+        # REF-B9G - Store incoming message as "internalOrigMsg" property
+        - method: setProperty
+          key: internalOrigMsg
+          value:
+            type: "simple"
+            expression: "${body}"
+
+        # REF- - Set header "requestId" to the initial "parent" correlationId
+        - method: setProperty
+          key: parentId
+          value:
+            type: "simple"
+            expression: "${exchangeId}"
+
+        # REF- - Store headers in exchange
+        - method: process
+          classname: com.interlinksoftware.integrationhub.config.step.processor.HeadersToPropertyProcessor
+
+        # REF- - Debug message
+        - method: log
+          level: "DEBUG"
+          message: "Writing body to received file"
+
+        # REF-H9Z - Log message to file
+        - method: isslog
+          message: "received | ${bodyAs(String)}"
+          type: received
+          queueSize: $[[uiMessageLimit]]
+          writeToFile: $[[logReceived]]
+          writeToDatabase: $[[logReceived]]
+
+        # REF- - Set body to origin message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.internalOrigMsg}"
+
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[preprocessHeaders]} != null && ${exchangeProperty.placeholders[preprocessHeaders]} != 'NOT_SET' && ${exchangeProperty.placeholders[preprocessHeaders]} is 'java.util.List' && ${exchangeProperty.placeholders[preprocessHeaders].size()} > 0"
+              steps:
+                - method: loop
+                  expression:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[preprocessHeaders].size()}"
+                  copy: false
+                  steps:
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex}).getOrDefault(expression, NOT_SET)} != 'NOT_SET'"
+                          steps:
+                            - method: setProperty
+                              key: preprocessHeaderExpression
+                              value:
+                                type: "simple"
+                                expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[expression]}"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: simple
+                                    expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex}).getOrDefault(headers, NOT_SET)} != 'NOT_SET' && ${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[headers]} is 'java.util.Map'"
+                                  steps:
+                                    - method: choice
+                                      when:
+                                        - predicate:
+                                            type: groovy
+                                            expression: |
+                                              preprocessHeaderExpression = exchange.properties.get("preprocessHeaderExpression")
+                                              language = exchange.getContext().resolveLanguage("simple")
+                                              predicate = language.createPredicate(preprocessHeaderExpression)
+                                              return predicate.matches(exchange);
+                                          steps:
+                                            - method: log
+                                              level: "DEBUG"
+                                              message: "Preprocess header expression(${exchangeProperty.preprocessHeaderExpression}) matches!!"
+                                            - method: setBody
+                                              expression:
+                                                type: simple
+                                                expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[headers]}"
+                                            - method: process
+                                              classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+                                      otherwise:
+                                        - method: log
+                                          level: "DEBUG"
+                                          message: "Preprocess header expression(${exchangeProperty.preprocessHeaderExpression}) does not match"
+                              otherwise:
+                                - method: log
+                                  level: "ERROR"
+                                  message: "No headers for expression(exchangeProperty.preprocessHeaderExpression) in preprocessor definition '(${header.Integration_HubLoopIndex})'"
+                      otherwise:
+                        - method: log
+                          level: "ERROR"
+                          message: "No expression in preprocessor definition '${header.Integration_HubLoopIndex}'"
+          otherwise:
+            - method: log
+              level: "DEBUG"
+              message: "No preprocessor definitions"
+
+        # REF- - Set body to origin message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.internalOrigMsg}"
+
+        # REF-4IZ - Data decoding
+        - method: choice
+          when:
+            # REF-BEK
+            - predicate:
+                type: simple
+                expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from gzip"
+                - method: unmarshal
+                  type: gzip
+
+        # REF-1CY -  Datatype decoding
+        - method: choice
+          when:
+            # REF-0KL - Unmarshal JSON
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'json'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from json"
+                - method: unmarshal
+                  type: json
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${body.getClass().getName()} == 'java.lang.String'"
+                      steps:
+                        - method: log
+                          level: "DEBUG"
+                          message: "decoding from json string - ${body.getClass().getName()}"
+                        - method: unmarshal
+                          type: json
+                # Cache the unmarshalled body
+                - method: setProperty
+                  key: unmarshalledBody
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # Append correlationId into the body
+                - method: setBody
+                  expression:
+                    type: "groovy"
+                    expression: |
+                      if (body instanceof Map) {
+                        body["correlationId"] = exchange.properties["parentId"]
+                      }
+
+                      if (body instanceof ArrayList) {
+                        body.eachWithIndex { it, i ->
+                          if (it instanceof Map) {
+                            body[i]["correlationId"] = exchange.properties["parentId"]
+                          }
+                        }
+                      }
+
+                      return body
+                # Convert the body back to its orig type
+                - method: marshal
+                  type: json
+                # Cache this body for use later on in the template
+                - method: setProperty
+                  key: rawBody
+                  value:
+                    type: "simple"
+                    expression: "${bodyAs(String)}"
+            # REF-FU6 - Unmarshal XML
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'xml'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from xml"
+                - method: unmarshal
+                  type: xml
+                # Cache the unmarshalled body
+                - method: setProperty
+                  key: unmarshalledBody
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # Append correlationId into the body
+                - method: setBody
+                  expression:
+                    type: "groovy"
+                    expression: |
+                      body["correlationId"] = exchange.properties["parentId"]
+                      return body
+                # Convert the body back to its orig type
+                - method: marshal
+                  type: xml
+                # Cache this body for use later on in the template
+                - method: setProperty
+                  key: rawBody
+                  value:
+                    type: "simple"
+                    expression: "${bodyAs(String)}"
+            # REF-5JV - Unmarshal YAML
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'yaml'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from yaml"
+                - method: unmarshal
+                  type: yaml
+                # Cache the unmarshalled body
+                - method: setProperty
+                  key: unmarshalledBody
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # Append correlationId into the body
+                - method: setBody
+                  expression:
+                    type: "groovy"
+                    expression: |
+                      body["correlationId"] = exchange.properties["parentId"]
+                      return body
+                # Convert the body back to its orig type
+                - method: marshal
+                  type: yaml
+                # Cache this body for use later on in the template
+                - method: setProperty
+                  key: rawBody
+                  value:
+                    type: "simple"
+                    expression: "${bodyAs(String)}"
+          # REF-SCT - If datatype is unknown
+          otherwise:
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "datatype '${header.Content-Type}' unknown"
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "writing to received file"
+
+            # REF-4UJ - Write log message to file
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | missed(${header.Content-Type}) | ${bodyAs(String)}"
+              type: received
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logReceived]]
+              writeToDatabase: $[[logReceived]]
+
+            # REF-0OP - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-JEF - Set Body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: "Unknown datatype '${header.Content-Type}'\\n"
+            # Stop processing any further
+            - method: stop
+
+        # Set the body back to the unmarshalled format
+        - method: setBody
+          expression:
+            type: "simple"
+            expression: "${exchangeProperty.unmarshalledBody}"
+
+        - method: split
+          aggregation-strategy:
+            type: collect-to-property
+          resolve-maps-as-key-value: false
+          expressions:
+            - type: simple
+              expression: "${body}"
+          steps:
+
+            # REF- - Handle allow list
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[allowList]} != null && ${exchangeProperty.placeholders[allowList]} != 'NOT_SET' && ${exchangeProperty.placeholders[allowList]} is 'java.util.List' && ${exchangeProperty.placeholders[allowList].size()} > 0"
+                  steps:
+                    - method: loop
+                      expression:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[allowList].size()}"
+                      copy: false
+                      steps:
+                        - method: setProperty
+                          key: allowListExpression
+                          value:
+                            type: "simple"
+                            expression: "${exchangeProperty.placeholders[allowList].get(${header.Integration_HubLoopIndex})}"
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: groovy
+                                expression: |
+                                  allowListExpression = exchange.properties.get("allowListExpression")
+                                  language = exchange.getContext().resolveLanguage("simple")
+                                  predicate = language.createPredicate(allowListExpression)
+                                  return predicate.matches(exchange);
+                              steps:
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "allowList expression(${exchangeProperty.allowListExpression}) matches"
+                                - method: setProperty
+                                  key: allowListCheck
+                                  value:
+                                    type: "constant"
+                                    expression: true
+                          otherwise:
+                            - method: log
+                              level: "DEBUG"
+                              message: "allowList expression(${exchangeProperty.allowListExpression}) does not match"
+                            - method: setProperty
+                              key: allowListCheck
+                              value:
+                                type: groovy
+                                expression: |
+                                  prop = exchange.properties.getOrDefault("allowListCheck", "NOT_SET")
+                                  if (prop == "NOT_SET") {
+                                    return false;
+                                  } else {
+                                    return prop;
+                                  }
+              otherwise:
+                - method: log
+                  level: "DEBUG"
+                  message: "No allowList definitions"
+
+            - method: choice
+              when:
+                - predicate:
+                    type: "simple"
+                    expression: "${exchangeProperty.allowListCheck.toString()} =~ 'false'"
+                  steps:
+                    - method: log
+                      level: "DEBUG"
+                      message: "Message not allowed by allowList"
+                    - method: isslog
+                      message: "dropped | ${bodyAs(String)}"
+                      type: dropped
+                      writeToFile: $[[logDropped]]
+                      writeToDatabase: $[[logDropped]]
+                      queueSize: $[[uiMessageLimit]]
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: '{ "status": "dropped", "requestId": "${exchangeId}"}'
+                    - method: stop
+
+            # REF- - Handle deny list
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[denyList]} != null && ${exchangeProperty.placeholders[denyList]} != 'NOT_SET' && ${exchangeProperty.placeholders[denyList]} is 'java.util.List' && ${exchangeProperty.placeholders[denyList].size()} > 0"
+                  steps:
+                    - method: loop
+                      expression:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[denyList].size()}"
+                      copy: false
+                      steps:
+                        - method: setProperty
+                          key: denyListExpression
+                          value:
+                            type: "simple"
+                            expression: "${exchangeProperty.placeholders[denyList].get(${header.Integration_HubLoopIndex})}"
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: groovy
+                                expression: |
+                                  denyListExpression = exchange.properties.get("denyListExpression")
+                                  language = exchange.getContext().resolveLanguage("simple")
+                                  predicate = language.createPredicate(denyListExpression)
+                                  return predicate.matches(exchange);
+                              steps:
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "denyList expression(${exchangeProperty.denyListExpression}) matches"
+                                - method: setProperty
+                                  key: denyListCheck
+                                  value:
+                                    type: "constant"
+                                    expression: true
+                          otherwise:
+                            - method: log
+                              level: "DEBUG"
+                              message: "denyList expression(${exchangeProperty.denyListExpression}) does not match"
+                            - method: setProperty
+                              key: denyListCheck
+                              value:
+                                type: groovy
+                                expression: |
+                                  prop = exchange.properties.getOrDefault("denyListCheck", "NOT_SET")
+                                  if (prop == "NOT_SET") {
+                                    return false;
+                                  } else {
+                                    return prop;
+                                  }
+              otherwise:
+                - method: log
+                  level: "DEBUG"
+                  message: "No denyList definitions"
+
+            - method: choice
+              when:
+                - predicate:
+                    type: "simple"
+                    expression: "${exchangeProperty.denyListCheck.toString()} =~ 'true'"
+                  steps:
+                    - method: log
+                      level: "DEBUG"
+                      message: "Message not allowed by denyList"
+                    - method: isslog
+                      message: "dropped | ${bodyAs(String)}"
+                      type: dropped
+                      writeToFile: $[[logDropped]]
+                      writeToDatabase: $[[logDropped]]
+                      queueSize: $[[uiMessageLimit]]
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: '{ "status": "dropped", "requestId": "${exchangeId}"}'
+                    - method: stop
+
+            # REF-IS2 - If the message matches a template key
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[filters]} != null && ${exchangeProperty.placeholders[filters]} != 'NOT_SET' && ${exchangeProperty.placeholders[filters]} is 'java.util.List' && ${exchangeProperty.placeholders[filters].size()} > 0"
+                  steps:
+                    - method: setProperty
+                      key: continueFilterLoop
+                      value:
+                        type: constant
+                        expression: true
+                    - method: setProperty
+                      key: filterListSize
+                      value:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[filters].size()}"
+                    - method: doWhile
+                      predicate:
+                        type: simple
+                        expression: "${exchangeProperty.continueFilterLoop}"
+                      copy: false
+                      steps:
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: groovy
+                                expression: |
+                                  def loopIndex = exchange.properties.get('filterLoopIndex', "0") as int;
+                                  def filterListSize = exchange.properties.get('filterListSize');
+                                  if (loopIndex >= filterListSize) {
+                                    // Exit from loop
+                                    exchange.properties.put("continueFilterLoop", false)
+                                    return false
+                                  }
+
+                                  def filters = exchange.properties.get('placeholders').get('filters')
+                                  def filterExpression = filters[loopIndex].get('expression')
+
+                                  exchange.properties.put("filterExpression", filterExpression)
+
+                                  filterExpression = exchange.properties.get("filterExpression")
+                                  language = exchange.getContext().resolveLanguage("simple")
+                                  predicate = language.createPredicate(filterExpression)
+                                  result = predicate.matches(exchange);
+                                  exchange.properties.put("continueFilterLoop", !result)
+                                  return result
+                              steps:
+                                # REF- - Debug message
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "body '${body}' has matched template statement '${exchangeProperty.filterExpression}'"
+                                - method: setProperty
+                                  key: filterCheck
+                                  value:
+                                    type: "constant"
+                                    expression: true
+                                # REF-8R9 - Set property "internalMatchFound" to true
+                                - method: setProperty
+                                  key: internalMatchFound
+                                  value:
+                                    type: "constant"
+                                    expression: true
+
+                                - method: setProperty
+                                  key: originMessage
+                                  value:
+                                    type: "simple"
+                                    expression: "${body}"
+
+                                # Set alertId from incoming payload
+                                - method: setProperty
+                                  key: alertId
+                                  value:
+                                    type: groovy
+                                    expression: |
+                                      def language = exchange.getContext().resolveLanguage("simple")
+                                      def loopIndex = exchange.properties.get("filterLoopIndex") as int
+                                      def filters = exchange.properties.get('placeholders').get('filters')
+
+                                      def alertid = language.createExpression(filters[loopIndex].alertId).evaluate(exchange, String)
+
+                                      return alertid
+
+                                # Lookup alert details using the incoming alertId
+                                - method: process-with-properties
+                                  classname: com.interlinksoftware.integrationhub.config.step.processor.AlertLookupProcessor
+                                  properties:
+                                    dataSource: "$[[alertLookupDatasource]]"
+                                    eventDaemonHost: $[[eventDaemonHost]]
+                                    eventDaemonPort: $[[eventDaemonPort]]
+                                    lookupFieldName: alertId
+                                    throwOnError: false
+
+                                # If loadedAlert is null, return an error in the response
+                                - method: choice
+                                  when:
+                                    - predicate:
+                                        type: simple
+                                        expression: "${exchangeProperty.loadedAlert} == null"
+                                      steps:
+                                        - method: log
+                                          level: DEBUG
+                                          message: "NO MATCHING ALERT FOUND FOR ID [${exchangeProperty.alertId}]"
+                                        - method: isslog
+                                          message: "parentId=${exchange.properties[parentId]} | failed() | No matching alert was found for id [${exchangeProperty.alertId}]"
+                                          type: failed
+                                          queueSize: $[[uiMessageLimit]]
+                                          writeToFile: $[[logFailed]]
+                                          writeToDatabase: $[[logFailed]]
+                                        - method: marshal
+                                          type: json
+                                        - method: setBody
+                                          expression:
+                                            type: simple
+                                            expression: '{"status": 400, "action": "FAILED", "message": "No matching alert was found for id [${exchangeProperty.alertId}]"}'
+                                        - method: stop
+                                  otherwise:
+                                    - method: choice
+                                      when:
+                                        - predicate:
+                                            type: simple
+                                            expression: "${exchangeProperty.loadedAlert[state]} == '1'"
+                                          steps:
+                                            - method: log
+                                              level: DEBUG
+                                              message: "LOADED ALERT EXISTS AND STATE = 1 -- PROCESSING FURTHER"
+                                            # Store orig payload in property
+                                            - method: setProperty
+                                              key: origBody
+                                              value:
+                                                type: simple
+                                                expression: "${body}"
+
+                                            # Escape \n characters in loadedAlert
+                                            - method: setProperty
+                                              key: loadedAlert
+                                              value:
+                                                type: groovy
+                                                expression: |
+                                                  def escapeInvalidCharactersInMap(map) {
+                                                      if (map instanceof Map) {
+                                                          map.each { key, value ->
+                                                              if (value instanceof String) {
+                                                                  // Replace all valid escape sequences first
+                                                                  def newValue = value
+                                                                      .replaceAll("\\\\b", "\\\\\\\\b")  // \b to \\b
+                                                                      .replaceAll("\\\\f", "\\\\\\\\f")  // \f to \\f
+                                                                      .replaceAll("\\\\n", "\\\\\\\\n")  // \n to \\n
+                                                                      .replaceAll("\\\\r", "\\\\\\\\r")  // \r to \\r
+                                                                      .replaceAll("\\\\t", "\\\\\\\\t")  // \t to \\t
+                                                                      .replaceAll("\\\"", "\\\\\"")     // \" to \"
+                                                                      .replaceAll("\\\\", "\\\\\\\\")    // \ to \\
+                                                                  // Remove any remaining invalid escape sequences
+                                                                  newValue = newValue.replaceAll("\\\\(?![bfnrt\"\\\\])", "")
+                                                                  map[key] = newValue
+                                                              }
+                                                          }
+                                                      } else {
+                                                          println("The provided object is not a map: ${map}")
+                                                      }
+                                                      return map
+                                                  }
+
+                                                  // Assuming 'exchange' is an object available in the context
+                                                  def loadedAlert = exchange.properties.get('loadedAlert')
+                                                  def escapedMap = escapeInvalidCharactersInMap(loadedAlert)
+                                                  return escapedMap
+
+                                            # Set body to loadedAlert
+                                            - method: setBody
+                                              expression:
+                                                type: simple
+                                                expression: "${exchangeProperty.loadedAlert}"
+
+                                            # Marshal the body into JSON
+                                            - method: marshal
+                                              type: json
+
+                                            # Set marshalledLoadedAlert property containing the marshalled loaded alert
+                                            - method: setProperty
+                                              key: marshalledLoadedAlert
+                                              value:
+                                                type: simple
+                                                expression: "${body}"
+
+                                            # Set body back to orig payload
+                                            - method: setBody
+                                              expression:
+                                                type: simple
+                                                expression: "${exchangeProperty.origBody}"
+
+                                            # Check if the filter has a localAlertLookupExpression defined first (These take precedence over the globalAlertLookupExpression)
+                                            - method: choice
+                                              when:
+                                                - predicate:
+                                                    type: simple
+                                                    expression: "${exchangeProperty.placeholders[filters][${header.Integration_HubLoopIndex}][localAlertLookupExpression]} != null && ${exchangeProperty.placeholders[filters][${header.Integration_HubLoopIndex}][localAlertLookupExpression]} != 'NOT_SET'"
+                                                  steps:
+                                                    - method: log
+                                                      level: DEBUG
+                                                      message: "Processing Local Alert Lookup Expression [${exchangeProperty.placeholders[filters][${header.Integration_HubLoopIndex}][localAlertLookupExpression]}]"
+                                                    - method: choice
+                                                      when:
+                                                        - predicate:
+                                                            type: groovy
+                                                            expression: |
+                                                              def placeholders = exchange.properties.get("placeholders")
+                                                              def loopIndex = exchange.getProperty('Integration_HubLoopIndex')
+
+                                                              localLookupExpression = placeholders.filters[loopIndex].get('localAlertLookupExpression')
+                                                              language = exchange.getContext().resolveLanguage("simple")
+                                                              predicate = language.createPredicate(localLookupExpression)
+
+                                                              return predicate.matches(exchange);
+                                                          steps:
+                                                            - method: log
+                                                              level: DEBUG
+                                                              message: "Local Alert Lookup Expression [${exchangeProperty.placeholders[filters][${header.Integration_HubLoopIndex}][localAlertLookupExpression]}] matches!"
+                                                            - method: setProperty
+                                                              key: lookupExpressionMatched
+                                                              value:
+                                                                type: simple
+                                                                expression: true
+                                                      otherwise:
+                                                        - method: log
+                                                          level: DEBUG
+                                                          message: "Local Alert Lookup Expression [${exchangeProperty.placeholders[filters][${header.Integration_HubLoopIndex}][localAlertLookupExpression]}] does not match!"
+                                              otherwise:
+                                                - method: log
+                                                  level: DEBUG
+                                                  message: "No Local Alert Lookup Expression defined -- Checking Global Alert Lookup Expression"
+                                            # Check globalAlertLookupExpression
+                                            - method: choice
+                                              when:
+                                                - predicate:
+                                                    type: simple
+                                                    expression: "${exchangeProperty.placeholders[globalAlertLookupExpression]} != null && ${exchangeProperty.placeholders[globalAlertLookupExpression]} != 'NOT_SET' && ${exchangeProperty.lookupExpressionMatched} != true"
+                                                  steps:
+                                                    - method: log
+                                                      level: DEBUG
+                                                      message: "Processing Global Alert Lookup Expression [${exchangeProperty.placeholders[globalAlertLookupExpression]}]"
+                                                    - method: choice
+                                                      when:
+                                                        - predicate:
+                                                            type: groovy
+                                                            expression: |
+                                                              def placeholders = exchange.properties.get("placeholders")
+                                                              globalLookupExpression = placeholders.get("globalAlertLookupExpression")
+                                                              language = exchange.getContext().resolveLanguage("simple")
+                                                              predicate = language.createPredicate(globalLookupExpression)
+
+                                                              return predicate.matches(exchange);
+                                                          steps:
+                                                            - method: log
+                                                              level: DEBUG
+                                                              message: "Global Alert Lookup Expression [${exchangeProperty.placeholders[globalAlertLookupExpression]}] matches!"
+                                                            - method: setProperty
+                                                              key: lookupExpressionMatched
+                                                              value:
+                                                                type: simple
+                                                                expression: true
+                                                      otherwise:
+                                                        - method: log
+                                                          level: DEBUG
+                                                          message: "Global Alert Lookup Expression [${exchangeProperty.placeholders[globalAlertLookupExpression]}] does not match!"
+                                              otherwise:
+                                                - method: log
+                                                  level: DEBUG
+                                                  message: "No Global Lookup Expression defined!"
+
+                                            - method: choice
+                                              when:
+                                                - predicate:
+                                                    type: simple
+                                                    expression: "${exchangeProperty.lookupExpressionMatched} != true"
+                                                  steps:
+                                                    - method: log
+                                                      level: DEBUG
+                                                      message: "No matching lookup expressions were found. Preventing further processing"
+                                                    - method: isslog
+                                                      message: "parentId=${exchange.properties[parentId]} | dropped() | No global/local expressions were defined, or no expressions returned a match for AlertId: [${exchangeProperty.alertId}] | Loaded Alert: ${exchangeProperty.loadedAlert}"
+                                                      type: dropped
+                                                      queueSize: $[[uiMessageLimit]]
+                                                      writeToFile: $[[logDropped]]
+                                                      writeToDatabase: $[[logDropped]]
+                                                    - method: marshal
+                                                      type: json
+                                                    - method: setBody
+                                                      expression:
+                                                        type: simple
+                                                        expression: '{"status": 400, "action": "DROPPED", "message": "No matching local/global lookup expressions were found", "globalLookupExpression": "${exchangeProperty.placeholders[globalAlertLookupExpression]}", "localAlertLookupExpressions": "", "loadedAlert": ${exchangeProperty.marshalledLoadedAlert}, "payload": ${body}}'
+                                                    - method: stop
+
+                                            # Get actionTypes from matched filter
+                                            - method: setProperty
+                                              key: actionTypes
+                                              value:
+                                                type: groovy
+                                                expression: |
+                                                  def loopIndex = exchange.properties.get("filterLoopIndex") as int
+                                                  def filter = exchange.properties.get('placeholders').get('filters')[loopIndex]
+
+                                                  // Get list of actionTypes from filter
+                                                  def types = []
+                                                  filter.actions.each{ key, value ->
+                                                    types.push(value.type)
+                                                  }
+
+                                                  return types
+
+                                            - method: log
+                                              level: DEBUG
+                                              message: "Actions for matched filter: [${exchangeProperty.actionTypes}]"
+
+                                            - method: setProperty
+                                              key: eventDateTimestamp
+                                              value:
+                                                type: simple
+                                                expression: "$simple{date:now:yyyy-MM-dd HH:mm:ss.SSS}"
+
+                                            - method: setProperty
+                                              key: propertySetter
+                                              value:
+                                                type: groovy
+                                                expression: |
+                                                  def language = exchange.getContext().resolveLanguage("simple")
+                                                  def loopIndex = exchange.properties.get("filterLoopIndex") as int
+                                                  def filter = exchange.properties.get('placeholders').get('filters')[loopIndex]
+
+                                                  def actions = filter.get('actions')
+
+                                                  actions.each { action ->
+                                                      if (action.value.type == "assignAlert" || action.value.type == "closeAlert") {
+                                                        exchange.properties.put("user", language.createExpression(action.value.user).evaluate(exchange, String))
+                                                      } else if (action.value.type == "addNote") {
+                                                        def resolvedNote = language.createExpression(action.value.fieldValue).evaluate(exchange, String)
+                                                        exchange.properties.put("note", resolvedNote)
+                                                      }
+                                                  }
+
+                                                  return
+
+                                            # Handle close alert
+                                            - method: choice
+                                              when:
+                                                - predicate:
+                                                    type: simple
+                                                    expression: "'closeAlert' in ${exchangeProperty.actionTypes}"
+                                                  steps:
+                                                    - method: log
+                                                      level: DEBUG
+                                                      message: "TYPE IS [closeAlert]"
+                                                    - method: setProperty
+                                                      key: addNoteString
+                                                      value:
+                                                        type: simple
+                                                        expression: '<AN><alertId>${exchangeProperty.alertId}</alertId><note>${exchangeProperty.note}</note><noteTime>${exchangeProperty.eventDateTimestamp}</noteTime><eventtime>${exchangeProperty.eventDateTimestamp}</eventtime></AN>'
+                                                    - method: setProperty
+                                                      key: closeAlertString
+                                                      value:
+                                                        type: simple
+                                                        expression: '<C><alertId>${exchangeProperty.alertId}</alertId><currentOperator>${exchangeProperty.user}</currentOperator><timeClosed>${exchangeProperty.eventDateTimestamp}</timeClosed><type>3</type><eventtime>${exchangeProperty.eventDateTimestamp}</eventtime></C>'
+                                                    - method: setProperty
+                                                      key: internalProcessedMessage
+                                                      value:
+                                                        type: simple
+                                                        expression: |
+                                                          ${exchangeProperty.addNoteString}\n
+                                                          ${exchangeProperty.closeAlertString}
+                                                    - method: setBody
+                                                      expression:
+                                                        type: simple
+                                                        expression: "${exchangeProperty.internalProcessedMessage}"
+                                                    - method: log
+                                                      level: "DEBUG"
+                                                      message: "writing to processed file"
+                                                    # REF-4MH - Log message to file
+                                                    - method: isslog
+                                                      message: "parentId=${exchange.properties[parentId]} | processed(${exchange.properties['filterExpression']}) | ${bodyAs(String)}"
+                                                      type: processed
+                                                      queueSize: $[[uiMessageLimit]]
+                                                      writeToFile: $[[logProcessed]]
+                                                      writeToDatabase: $[[logProcessed]]
+
+                                                    # Send close to AlertServer
+                                                    - method: to
+                                                      component: netty
+                                                      properties:
+                                                        protocol: tcp
+                                                        host: "$[[alertServerHost]]"
+                                                        port: "$[[alertServerPort]]"
+                                                        clientMode: true
+                                                        reconnect: true
+                                                        producerPoolEnabled: true
+                                                        sync: true
+                                                        textline: true
+                                                    - method: log
+                                                      level: DEBUG
+                                                      message: "Response code from AlertServer [${body}]"
+                                                    - method: choice
+                                                      when:
+                                                        - predicate:
+                                                            type: simple
+                                                            expression: "${body.startsWith('0')}"
+                                                          steps:
+                                                            - method: log
+                                                              level: "DEBUG"
+                                                              message: "writing to the success file"
+                                                            - method: isslog
+                                                              message: "parentId=${exchange.properties[parentId]} | success(${exchange.properties['filterExpression']}) | Successfully closed alert [${exchangeProperty.alertId}] | AlertServer response = ${body}"
+                                                              type: success
+                                                              queueSize: $[[uiMessageLimit]]
+                                                              writeToFile: $[[logSuccess]]
+                                                              writeToDatabase: $[[logSuccess]]
+                                                            - method: setBody
+                                                              expression:
+                                                                type: simple
+                                                                expression: "${exchangeProperty.origBody}"
+                                                            - method: marshal
+                                                              type: json
+                                                            - method: setBody
+                                                              expression:
+                                                                type: simple
+                                                                expression: '{"status": 200, "action": "SUCCESS", "message": "Successfully closed alert [${exchangeProperty.alertId}]", "payload": ${body}}'
+                                                            - method: stop
+                                                      otherwise:
+                                                        - method: log
+                                                          level: "DEBUG"
+                                                          message: "writing to the failed file"
+                                                        - method: isslog
+                                                          message: "parentId=${exchange.properties[parentId]} | failed(${exchange.properties['filterExpression']}) | Failed to close alert [${exchangeProperty.alertId}] | AlertServer response = ${body}"
+                                                          type: failed
+                                                          queueSize: $[[uiMessageLimit]]
+                                                          writeToFile: $[[logFailed]]
+                                                          writeToDatabase: $[[logFailed]]
+                                                        - method: setProperty
+                                                          key: alertServerResponse
+                                                          value:
+                                                            type: simple
+                                                            expression: "${body}"
+                                                        - method: setBody
+                                                          expression:
+                                                            type: simple
+                                                            expression: "${exchangeProperty.origBody}"
+                                                        - method: marshal
+                                                          type: json
+                                                        - method: setBody
+                                                          expression:
+                                                            type: simple
+                                                            expression: '{"status": 400, "action": "FAILED", "message": "Failed to close alert [${exchangeProperty.alertId}]", "alertServerResponse": "${exchangeProperty.alertServerResponse}", "payload": ${body}}'
+                                                        - method: stop
+
+                                            # Handle assign alert
+                                            - method: choice
+                                              when:
+                                                - predicate:
+                                                    type: simple
+                                                    expression: "'assignAlert' in ${exchangeProperty.actionTypes}"
+                                                  steps:
+                                                    - method: log
+                                                      level: DEBUG
+                                                      message: "TYPE IS [assignAlert]"
+                                                    - method: log
+                                                      level: DEBUG
+                                                      message: "Checking if alert [${exchangeProperty.alertId}] is already assigned..."
+                                                    - method: log
+                                                      level: DEBUG
+                                                      message: "Current Operator = [${exchangeProperty.loadedAlert[currentoperator]}]"
+                                                    - method: choice
+                                                      when:
+                                                        - predicate:
+                                                            type: simple
+                                                            expression: "${exchangeProperty.loadedAlert[currentoperator]} == ${exchangeProperty.user}"
+                                                          steps:
+                                                            - method: log
+                                                              level: DEBUG
+                                                              message: "Alert [${exchangeProperty.alertId}] is already assigned to the requested user | Current Assigned User [${exchangeProperty.loadedAlert[currentoperator]}] | Requested User [${exchangeProperty.user}]"
+                                                            - method: setBody
+                                                              expression:
+                                                                type: simple
+                                                                expression: "${exchangeProperty.origBody}"
+                                                            - method: marshal
+                                                              type: json
+                                                            - method: setBody
+                                                              expression:
+                                                                type: simple
+                                                                expression: '{"status": 409, "action": "DROPPED", "message": "Alert [${exchangeProperty.alertId}] is already assigned to the requested user | Current Assigned User [${exchangeProperty.loadedAlert[currentoperator]}] | Requested User [${exchangeProperty.user}]", "payload": ${body}}'
+                                                      otherwise:
+                                                        - method: choice
+                                                          when:
+                                                            - predicate:
+                                                                type: simple
+                                                                expression: "${exchangeProperty.loadedAlert[currentoperator]} != '--'"
+                                                              steps:
+                                                                - method: log
+                                                                  level: DEBUG
+                                                                  message: "Alert is currently assigned to [${exchangeProperty.loadedAlert[currentoperator]}] -- Deassigning alert before reassigning to [${exchangeProperty.user}]"
+                                                                - method: setProperty
+                                                                  key: deassignAlertString
+                                                                  value:
+                                                                    type: simple
+                                                                    expression: '<A><alertId>${exchangeProperty.alertId}</alertId><currentOperator>--</currentOperator><timeAssigned></timeAssigned><timeAccepted></timeAccepted><timeDeassigned>${exchangeProperty.eventDateTimestamp}</timeDeassigned><type>11</type><_originkey>${exchangeProperty.loadedAlert[_originkey]}</_originkey></A>'
+                                                                - method: setProperty
+                                                                  key: internalProcessedMessage
+                                                                  value:
+                                                                    type: simple
+                                                                    expression: ${exchangeProperty.deassignAlertString}
+                                                                - method: setBody
+                                                                  expression:
+                                                                    type: simple
+                                                                    expression: "${exchangeProperty.internalProcessedMessage}"
+                                                                # Send deassign to AlertServer
+                                                                - method: to
+                                                                  component: netty
+                                                                  properties:
+                                                                    protocol: tcp
+                                                                    host: "$[[alertServerHost]]"
+                                                                    port: "$[[alertServerPort]]"
+                                                                    clientMode: true
+                                                                    reconnect: true
+                                                                    producerPoolEnabled: true
+                                                                    sync: true
+                                                                    textline: true
+                                                                - method: log
+                                                                  level: DEBUG
+                                                                  message: "Response code from AlertServer [${body}]"
+                                                                - method: choice
+                                                                  when:
+                                                                    - predicate:
+                                                                        type: simple
+                                                                        expression: "${body.startsWith('0')}"
+                                                                      steps:
+                                                                        - method: log
+                                                                          level: DEBUG
+                                                                          message: "Successfully deassigned alert [${exchangeProperty.alertId}] -- Proceeding with alert assignment to user [${exchangeProperty.user}]"
+                                                                        - method: setProperty
+                                                                          key: deassigned
+                                                                          value:
+                                                                            type: constant
+                                                                            expression: true
+                                                                  otherwise:
+                                                                    - method: log
+                                                                      level: DEBUG
+                                                                      message: "Failed to deassign alert [${exchangeProperty.alertId}] | AlertServer Response = [${body}]"
+                                                                    - method: isslog
+                                                                      message: "parentId=${exchange.properties[parentId]} | failed() | Failed to deassign alert [${exchangeProperty.alertId}] | AlertServer response = ${body}"
+                                                                      type: failed
+                                                                      queueSize: $[[uiMessageLimit]]
+                                                                      writeToFile: $[[logFailed]]
+                                                                      writeToDatabase: $[[logFailed]]
+                                                                    - method: setProperty
+                                                                      key: alertServerResponse
+                                                                      value:
+                                                                        type: simple
+                                                                        expression: "${body}"
+                                                                    - method: setBody
+                                                                      expression:
+                                                                        type: simple
+                                                                        expression: "${exchangeProperty.origBody}"
+                                                                    - method: marshal
+                                                                      type: json
+                                                                    - method: setBody
+                                                                      expression:
+                                                                        type: simple
+                                                                        expression: '{"status": 400, "action": "FAILED", "message": "Failed to deassign alert [${exchangeProperty.alertId}]", "alertServerResponse": "${exchangeProperty.alertServerResponse}", "payload": ${body}}'
+                                                        - method: choice
+                                                          when:
+                                                            - predicate:
+                                                                type: simple
+                                                                expression: "${exchangeProperty.deassigned} || ${exchangeProperty.loadedAlert[currentoperator]} == '--'"
+                                                              steps:
+                                                                - method: setProperty
+                                                                  key: addNoteString
+                                                                  value:
+                                                                    type: simple
+                                                                    expression: '<AN><alertId>${exchangeProperty.alertId}</alertId><note>${exchangeProperty.note}</note><noteTime>${exchangeProperty.eventDateTimestamp}</noteTime><eventtime>${exchangeProperty.eventDateTimestamp}</eventtime></AN>'
+                                                                - method: setProperty
+                                                                  key: assignAlertString
+                                                                  value:
+                                                                    type: simple
+                                                                    expression: '<A><alertId>${exchangeProperty.alertId}</alertId><timeAssigned>${exchangeProperty.eventDateTimestamp}</timeAssigned><timeAccepted>${exchangeProperty.eventDateTimestamp}</timeAccepted><currentOperator>${exchangeProperty.user}</currentOperator><type>8</type><eventtime>${exchangeProperty.eventDateTimestamp}</eventtime></A>'
+                                                                - method: setProperty
+                                                                  key: internalProcessedMessage
+                                                                  value:
+                                                                    type: simple
+                                                                    expression: |
+                                                                      ${exchangeProperty.addNoteString}\n
+                                                                      ${exchangeProperty.assignAlertString}
+                                                                - method: setBody
+                                                                  expression:
+                                                                    type: simple
+                                                                    expression: "${exchangeProperty.internalProcessedMessage}"
+                                                                - method: log
+                                                                  level: "DEBUG"
+                                                                  message: "writing to processed file"
+                                                                # REF-4MH - Log message to file
+                                                                - method: isslog
+                                                                  message: "parentId=${exchange.properties[parentId]} | processed(${exchange.properties['filterExpression']}) | ${bodyAs(String)}"
+                                                                  type: processed
+                                                                  queueSize: $[[uiMessageLimit]]
+                                                                  writeToFile: $[[logProcessed]]
+                                                                  writeToDatabase: $[[logProcessed]]
+
+                                                                # Send assign to AlertServer
+                                                                - method: to
+                                                                  component: netty
+                                                                  properties:
+                                                                    protocol: tcp
+                                                                    host: "$[[alertServerHost]]"
+                                                                    port: "$[[alertServerPort]]"
+                                                                    clientMode: true
+                                                                    reconnect: true
+                                                                    producerPoolEnabled: true
+                                                                    sync: true
+                                                                    textline: true
+                                                                - method: log
+                                                                  level: DEBUG
+                                                                  message: "Response code from AlertServer [${body}]"
+                                                                - method: choice
+                                                                  when:
+                                                                    - predicate:
+                                                                        type: simple
+                                                                        expression: "${body.startsWith('0')}"
+                                                                      steps:
+                                                                        - method: log
+                                                                          level: "DEBUG"
+                                                                          message: "writing to the success file"
+                                                                        - method: isslog
+                                                                          message: "parentId=${exchange.properties[parentId]} | success(${exchange.properties['filterExpression']}) | Successfully assigned alert [${exchangeProperty.alertId}] to [${exchangeProperty.user}] | AlertServer response = ${body}"
+                                                                          type: success
+                                                                          queueSize: $[[uiMessageLimit]]
+                                                                          writeToFile: $[[logSuccess]]
+                                                                          writeToDatabase: $[[logSuccess]]setProperty
+                                                                        - method: setBody
+                                                                          expression:
+                                                                            type: simple
+                                                                            expression: "${exchangeProperty.origBody}"
+                                                                        - method: marshal
+                                                                          type: json
+                                                                        - method: setBody
+                                                                          expression:
+                                                                            type: simple
+                                                                            expression: '{"status": 200, "action": "SUCCESS", "message": "Successfully assigned alert [${exchangeProperty.alertId}] to [${exchangeProperty.user}]", "payload": ${body}}'
+                                                                  otherwise:
+                                                                    - method: log
+                                                                      level: "DEBUG"
+                                                                      message: "writing to the failed file"
+                                                                    - method: isslog
+                                                                      message: "parentId=${exchange.properties[parentId]} | failed(${exchange.properties['filterExpression']}) | Failed to assign alert [${exchangeProperty.alertId}] | AlertServer response = ${body}"
+                                                                      type: failed
+                                                                      queueSize: $[[uiMessageLimit]]
+                                                                      writeToFile: $[[logFailed]]
+                                                                      writeToDatabase: $[[logFailed]]
+                                                                    - method: setProperty
+                                                                      key: alertServerResponse
+                                                                      value:
+                                                                        type: simple
+                                                                        expression: "${body}"
+                                                                    - method: setBody
+                                                                      expression:
+                                                                        type: simple
+                                                                        expression: "${exchangeProperty.origBody}"
+                                                                    - method: marshal
+                                                                      type: json
+                                                                    - method: setBody
+                                                                      expression:
+                                                                        type: simple
+                                                                        expression: '{"status": 400, "action": "FAILED", "message": "Failed to assign alert [${exchangeProperty.alertId}]", "alertServerResponse": "${exchangeProperty.alertServerResponse}", "payload": ${body}}'
+                                      otherwise:
+                                        - method: isslog
+                                          message: "parentId=${exchange.properties[parentId]} | dropped() | Not processing any further as Alert with id [${exchangeProperty.alertId}] is closed"
+                                          type: dropped
+                                          queueSize: $[[uiMessageLimit]]
+                                          writeToFile: $[[logDropped]]
+                                          writeToDatabase: $[[logDropped]]
+                                        - method: setBody
+                                          expression:
+                                            type: simple
+                                            expression: '{"status": 400, "action": "DROPPED", "requestId": "${exchange.properties[parentId]}", "message": "Not processing any further as Alert with id [${exchangeProperty.alertId}] is closed"}'
+                          otherwise:
+                            - method: log
+                              level: "DEBUG"
+                              message: "filters expression(${exchangeProperty.filterExpression}) does not match"
+                            - method: setProperty
+                              key: filterCheck
+                              value:
+                                type: groovy
+                                expression: |
+                                  prop = exchange.properties.getOrDefault("filterCheck", "NOT_SET")
+                                  if (prop == "NOT_SET") {
+                                    return false;
+                                  } else {
+                                    return prop;
+                                  }
+                            - method: setProperty
+                              key: filterLoopIndex
+                              value:
+                                type: "groovy"
+                                expression: |
+                                  def loopIndex = exchange.properties.get('filterLoopIndex') as int;
+                                  return loopIndex + 1
+              otherwise:
+                - method: log
+                  level: "ERROR"
+                  message: "No filter definitions"
+                - method: setProperty
+                  key: filterCheck
+                  value:
+                    type: "constant"
+                    expression: false
+
+            - method: choice
+              when:
+                - predicate:
+                    type: "simple"
+                    expression: "${exchangeProperty.filterCheck.toString()} =~ 'false'"
+                  steps:
+                    - method: log
+                      level: "DEBUG"
+                      message: "writing to dropped file"
+                    # REF-4UJ - Write log message to file
+                    - method: isslog
+                      message: "parentId=${exchange.properties[parentId]} | dropped() | No filter definitions were defined, or no matching definitions were found for the incoming message | ${bodyAs(String)}"
+                      type: dropped
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logDropped]]
+                      writeToDatabase: $[[logDropped]]
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: '{"status": 400, "action": "DROPPED", "requestId": "${exchange.properties[parentId]}", "message": "No filter definitions were defined, or no matching definitions were found for the incoming message"}'
+
+        - method: setProperty
+          key: origBody
+          value:
+            type: simple
+            expression: "${body}"
+
+        - method: setProperty
+          key: aggregationResponse
+          value:
+            type: groovy
+            expression: |
+              def data = exchange.properties.get('AggregationResult')
+              def responseBody = data[0].body
+
+              return responseBody
+
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.aggregationResponse}"
+
+        - method: unmarshal
+          type: json
+
+        - method: setProperty
+          key: unmarshalledAggregationResponse
+          value:
+            type: simple
+            expression: "${body}"
+
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.origBody}"
+
+        # Set Header 'Integration_HubFreemarkerTemplate', containing the response
+        - method: setHeader
+          key: Integration_HubHttpResponseCode
+          value:
+            type: groovy
+            expression: |
+              def responseCode = exchange.properties.get('unmarshalledAggregationResponse').get('status')
+              def responseCodeInt = responseCode.toInteger()
+
+              return responseCodeInt
+        - method: setHeader
+          key: Integration_HubFreemarkerTemplate
+          value:
+            type: "constant"
+            expression: |
+              <@compress single_line=true>
+                {
+                  "requestId": "${exchange.properties.parentId}",
+                  "results": [
+
+                    <#if exchange.properties.AggregationResult??>
+                      <#list exchange.properties.AggregationResult as result>
+                        ${result.body!""}<#if result?has_next>,</#if>
+                      </#list>
+                    </#if>
+
+                  ]
+                }
+              </@compress>
+
+        # REF-4A1 - Compile FTL template
+        - method: to
+          component: freemarker
+          properties:
+            resourceUri: dummy
+            allowTemplateFromHeader: true
+            allowContextMapAll: true
