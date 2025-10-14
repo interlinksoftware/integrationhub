@@ -991,7 +991,7 @@ shared:
                   def endpoint = placeholders.incidentPayload[exchange.properties.get("matchedPayloadIndex")]
                   def localFieldOverrides = endpoint.get("localFieldOverrides")
 
-                  if (!localFieldOverrides.isEmpty()) {
+                  if (localFieldOverrides != null && !localFieldOverrides.isEmpty()) {
                     exchange.properties['placeholders'].put("localFieldOverrides", endpoint.localFieldOverrides as Map)
                   }
 

@@ -18,6 +18,7 @@
 | Update a debug message to help better identify the loop we're in when processing update sets                                                                                                                                                                     | IH-883 |
 | Correct typos for multiple `otherwise` blocks that would've never executed                                                                                                                                                                                       | IH-883 |
 | Correct groovy simple expression evaluation when building and resolving simple expressions in the payload<br/><br/>This is to prevent premature Groovy interpolation of `${...}` expressions, which resulted in `+ expr +` being set as the evaluated result     | IH-928 |
+| Add `null` check when adding `localFieldOverrides` to the `payloadObject`<br/><br/>This resolves an issue where the code would bomb out if `localFieldOverrides` would return `null`                                                                             | IH-929 |
 
 ## Overview
 
