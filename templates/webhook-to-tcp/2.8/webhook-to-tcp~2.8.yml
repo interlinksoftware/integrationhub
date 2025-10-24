@@ -1229,29 +1229,15 @@ shared:
             - predicate:
                 type: groovy
                 expression: |
-                  placeholders = exchange.properties.get("placeholders")
-                  if (placeholders.containsKey("apiKey")) {
-                    apiKey = placeholders.get("apiKey")
-                    if (apiKey == null ||  apiKey.length() == 0) {
-                      return false;
-                    } else {
-                      if (headers.containsKey("apiKey")) {
-                        headerApiKey = headers.get("apiKey")
-                        if (headerApiKey == null || headerApiKey.isEmpty() || apiKey != headerApiKey) {
-                          return true;
-                        } else {
-                          return false
-                        }
-                      }
-                    }
-                  } else {
-                    return false;
-                  }
+                  def placeholders = exchange.properties.get("placeholders") ?: [:]
+                  def expected = (placeholders.get("apiKey") ?: "").toString().trim()
+                  def provided = (headers?.get("apiKey") ?: "").toString().trim()
+                  return expected && ( !provided || provided != expected )
               steps:
                 # REF- - Log Error
                 - method: log
                   level: "ERROR"
-                  message: "apiKey '${header.apiKey}' is incorrect"
+                  message: "apiKey '${header.apiKey}' is incorrect or missing"
                 - method: removeHeaders
                   pattern: "*"
                 # REF- - Set header "Integration_HubHttpResponseCode" to 400
@@ -1264,7 +1250,7 @@ shared:
                 - method: setBody
                   expression:
                     type: constant
-                    expression: '{"status": "error", "error": "API key is incorrect"}'
+                    expression: '{"status": "error", "error": "API key is incorrect or missing"}'
                 # REF- - Set content type header
                 - method: setHeader
                   key: Content-Type
