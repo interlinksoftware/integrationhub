@@ -307,6 +307,16 @@
                     "minimumCompatibilityVersion": "2.2.0"
                 }
             ]
+        },
+        {
+            "name": "webhook-to-message-cache",
+            "description": "The webhook-to-message-cache template provides functionality to transfer, filter/transform and send from webhook to a Message Cache consumer, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "3.1.0"
+                }
+            ]
         }
     ]
 }
