@@ -47,6 +47,10 @@
                 {
                     "name": "2.1",
                     "minimumCompatibilityVersion": "2.1.0"
+                },
+                {
+                    "name": "2.2",
+                    "minimumCompatibilityVersion": "2.3.0"
                 }
             ]
         },
