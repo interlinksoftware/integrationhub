@@ -1,0 +1,218 @@
+shared:
+  templates:
+    "[batchjob~2.3]":
+      version: "2.3"
+      minimumCompatibilityVersion: 2.3.0
+      description: "Batchjob Scheduler"
+      placeholders:
+        "schedule":
+          description: "The cron expression that defines the execution schedule for this pipeline"
+          required: true
+          type: "string"
+        "command":
+          description: "The command to be executed"
+          required: true
+          type: "string"
+        "description":
+          description: "A description of this pipeline"
+          required: true
+          type: "string"
+          defaultValue: ""
+        "args":
+          description: "arguments passed to the command (whitespace separated)"
+          bind-to-exchange: true
+          required: false
+          type: "string"
+          defaultValue: ""
+        "timeout":
+          description: "The number of milliseconds to wait before terminating the command (default: 1 hour)"
+          required: false
+          type: "long"
+          defaultValue: 3600000
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+          type: "integer"
+      uiSchema:
+        type: object
+        properties:
+          cron:
+            type: grid
+            ui:
+              columns:
+                - 30%
+                - 65%
+              alignRow: baseline
+            properties:
+              schedule:
+                type: cron
+                title: cron expression*
+              description:
+                type: string
+                title: description*
+                validation:
+                  regex: .{4,}
+                  message: enter description
+          command:
+            type: grid
+            ui:
+              columns:
+                - 30%
+                - 54%
+                - 10%
+              alignRow: baseline
+            properties:
+              command:
+                type: text
+                title: command / script*
+                description: Absolute path to command/script to execute
+                validation:
+                  regex: .{4,}
+                  message: Absolute path to command/script to execute
+              args:
+                type: string
+                title: arguments
+                description: arguments to be passed to command/script
+                defaultValue: ""
+              timeout:
+                type: number
+                title: seconds
+                description: timeout (millisecs)
+                validation:
+                  regex: ^[1-9]\d{3,}
+                  message: timeout in milliseconds
+          optionalSettings:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: '=='
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of failed/dropped/success/processed/received messages to display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages received
+                      logProcessed:
+                        type: checkbox
+                        title: log processed messages
+                        defaultValue: true
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed messages
+      pipelineFlow:
+        - type: block
+          label: Quartz Cron Scheduler
+          icon: clock
+        - type: arrow
+          forward: true
+        - type: block
+          icon: square-code
+          label: Execute Command/Script
+      steps:
+        - method: from
+          component: quartz
+          properties:
+            triggerName: "$[[pipeline.id]]Trigger"
+            cron: "$[[schedule]]"
+        - method: setBody
+          expression:
+            type: simple
+            expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | START: command=$[[command]] args=$[[args]]"
+        - method: isslog
+          message: "received | parentId=${exchangeProperty.parentId} | ${bodyAs(String)}"
+          type: received
+          queueSize: $[[uiMessageLimit]]
+          writeToFile: $[[logReceived]]
+          writeToDatabase: $[[logReceived]]
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[args]} != null && '${exchangeProperty.placeholders[args]}' != ''"
+              steps:
+                - method: to
+                  component: exec
+                  properties:
+                    executable: $[[command]]
+                    args: $[[args]]
+                    workingDir: "$[[envvar.iss.config.dir]]"
+                    timeout: $[[timeout]]
+          otherwise:
+            - method: to
+              component: exec
+              properties:
+                executable: $[[command]]
+                workingDir: "$[[envvar.iss.config.dir]]"
+                timeout: $[[timeout]]
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${headers.Integration_HubExecExitValue} != null && ${headers.Integration_HubExecExitValue} == null || ${headers.Integration_HubExecExitValue} != 0"
+              steps:
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | FINISH: Command Failed command=$[[command]] args=$[[args]] returnCode=${headers.Integration_HubExecExitValue} response=${body}"
+                - method: isslog
+                  message: "failed | parentId=${exchangeProperty.parentId} | ${bodyAs(String)}"
+                  type: failed
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logFailed]]
+                  writeToDatabase: $[[logFailed]]
+          otherwise:
+            - method: setBody
+              expression:
+                type: simple
+                expression: "$simple{date:now:yyyy-MM-dd'T'HH:mm:ssZ} | ${exchangeId} | FINISH: command=$[[command]] args=$[[args]] returnCode=${headers.Integration_HubExecExitValue} response=${body}"
+            - method: isslog
+              message: "processed | parentId=${exchangeProperty.parentId} | ${bodyAs(String)}"
+              type: processed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logProcessed]]
+              writeToDatabase: $[[logProcessed]]
