@@ -19,6 +19,11 @@ shared:
           bind-to-exchange: true
           defaultValue: "NOT_SET"
           type: "array"
+        "followRedirects":
+          description: "Whether to follow redirects from the REST endpoint"
+          required: false
+          defaultValue: true
+          type: "boolean"
         "connectTimeout":
           description: "Duration in seconds to timeout the request"
           required: false
@@ -154,7 +159,7 @@ shared:
                           areas:
                             - dataSource dataSource dataSource dataSource
                             - >-
-                              connectionTimeout connectionTimeout connectionRequestTimeout connectionRequestTimeout
+                              connectionTimeout connectionTimeout connectionRequestTimeout followRedirects
                           alignRow: center
                         properties:
                           dataSource:
@@ -169,6 +174,10 @@ shared:
                             type: number
                             title: Connection Request Timeout
                             defaultValue: 10000
+                          followRedirects:
+                            type: checkbox
+                            title: Follow Redirects
+                            defaultValue: true
           endpointSection:
             type: object
             properties:
@@ -919,6 +928,7 @@ shared:
                         connectTimeout: $[[connectTimeout]]
                         connectionRequestTimeout: $[[connectionRequestTimeout]]
                         throwExceptionOnFailure: false
+                        followRedirects: $[[followRedirects]]
                     - method: choice
                       when:
                         - predicate:
