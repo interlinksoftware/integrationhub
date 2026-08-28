@@ -317,6 +317,16 @@
                     "minimumCompatibilityVersion": "3.1.0"
                 }
             ]
+        },
+        {
+            "name": "message-cache-consumer-to-tcp",
+            "description": "The message-cache-consumer-to-tcp template provides functionality to read from a message-cache topic, filter/transform and send to a TCP listener, via an integraton-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "2.4.0"
+                }
+            ]
         }
     ]
 }
