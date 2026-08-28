@@ -1,0 +1,2206 @@
+shared:
+  templates:
+    "[message-cache-consumer-to-tcp~1.0]":
+      version: "1.0"
+      minimumCompatibilityVersion: 2.4.0
+      description: "The message-cache-consumer-to-tcp template provides functionality to read from a message-cache topic, filter/transform and send to a TCP listener, via an integraton-hub pipeline."
+      placeholders:
+        "messageCacheBrokers":
+          description: "Comma-separated list of Message Cache brokers in host:port format"
+          type: string
+          required: true
+          bind-to-exchange: true
+        "messageCacheUsername":
+          description: "Specify the username to authenticate against the  Message Cache with"
+          type: string
+          required: true
+          bind-to-exchange: true
+        "messageCachePassword":
+          description: "Specify the password to authenticate against the  Message Cache with"
+          type: string
+          valueType: encrypted
+          required: true
+          bind-to-exchange: true
+        "topicName":
+          description: "Specify the topic to consume from"
+          type: string
+          required: true
+          bind-to-exchange: true
+        "groupName":
+          description: "Specify the consumer group name to use"
+          type: string
+          required: true
+          bind-to-exchange: true
+        "sslContextParameters":
+          description: "Reference to the ssl configuration to enable SSL on the pipeline"
+          type: string
+          required: false
+          bind-to-exchange: false
+          defaultValue: "#IssSslConfig"
+        "regexList":
+          description: "List of regular expressions to execute against the body"
+          bind-to-exchange: true
+          required: false
+          defaultValue: "NOT_SET"
+        "includeHeaders":
+          description: "This option is used to toggle between including/excluding headers in the processed message"
+          type: boolean
+          required: false
+          bind-to-exchange: true
+          defaultValue: false
+        "embeddedXmlToEscape":
+          description: "If the incoming message is in JSON format and contains embedded XML with unescaped characters (such as double quotes), specify the name of the root XML element"
+          type: "string"
+          required: false
+          bind-to-exchange: true
+          defaultValue: "NOT_SET"
+        "throttleEnabled":
+          description: "Toggle to enable / disable throttling of incoming messages"
+          type: boolean
+          required: false
+          defaultValue: false
+        "throttleCount":
+          description: "Maximum number of incoming messages that can be ingested within the defined throttle period"
+          type: string
+          required: false
+          defaultValue: 10
+        "throttlePeriod":
+          description: "The time period during which the throttle count is valid for"
+          type: string
+          required: false
+          defaultValue: "10s"
+        "destinationServers":
+          description: "List of servers to send the pipeline output to"
+          type: array
+          required: true
+          bind-to-exchange: true
+        "preprocessHeaders":
+          description: ""
+          type: array
+          required: false
+          bind-to-exchange: true
+          defaultValue: "NOT_SET"
+        "allowList":
+          description: "List of logic statements to determine if the request can proceed"
+          type: array
+          required: false
+          bind-to-exchange: true
+          defaultValue: "NOT_SET"
+        "denyList":
+          description: "List of logic statements to halt the request"
+          type: array
+          required: false
+          bind-to-exchange: true
+          defaultValue: "NOT_SET"
+        "filters":
+          description: "List of filters to match and format the data"
+          type: array
+          required: false
+          bind-to-exchange: true
+          defaultValue: "NOT_SET"
+        "newlinePlaceholder":
+          description: "String to replace newline characters values with"
+          type: string
+          required: false
+          defaultValue: " "
+        "blankPlaceholder":
+          description: "String to replace blank values with"
+          type: string
+          required: false
+          defaultValue: "N/A"
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          type: boolean
+          required: false
+          bind-to-exchange: true
+          defaultValue: true
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          type: boolean
+          required: false
+          bind-to-exchange: true
+          defaultValue: true
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          type: boolean
+          required: false
+          bind-to-exchange: true
+          defaultValue: true
+        "logDropped":
+          description: "To log all dropped data, set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          type: boolean
+          required: false
+          bind-to-exchange: true
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          type: boolean
+          required: false
+          bind-to-exchange: true
+          defaultValue: true
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          type: integer
+          required: false
+          defaultValue: "200"
+        "fieldLimit":
+          description: "The maximum number of characters allowed in each field of the incoming message"
+          type: integer
+          required: false
+          defaultValue: 256
+        "messageLimit":
+          description: "The maximum number of characters allowed in the message after it has been formatted"
+          type: integer
+          required: false
+          defaultValue: 4096
+      uiSchema:
+        type: object
+        properties:
+          datasourceConfig:
+            type: header
+            title: Message Cache Datasource
+          fileGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              fileConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  fileConfigTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### Message Cache DataSource Properties
+
+                              The following properties can be specified for the Message Cache DataSource.
+
+                              | property | description |
+                              | -- | -- |
+                              | Message Cache Brokers | A comma-separated list of message-cache brokers in `host:port` format, for example `broker1:9092,broker2:9092` |
+                              | Topic Name | This name of the topic you wish to subscribe to |
+                              | Message Cache Username | The username for authentication |
+                              | Message Cache Password | The password for authentication |
+                              | Group Name | The Group ID to associated for consumer |
+
+                            ### Optional Settings
+
+                              | property | description |
+                              | -- | -- |
+                              | SSL Context Parameters | Reference to the ssl configuration to use when making the connection to the Message Cache |
+                              | Embedded XML Root Element | If the incoming message is in JSON format and contains embedded XML with unescaped characters (such as double quotes), specify the name of the root XML element. This allows the processor to locate and escape characters within that XML block before further processing |
+                  fileConfigValue:
+                    type: object
+                    properties:
+                      mc1:
+                        type: grid
+                        ui:
+                          areas:
+                            - messageCacheBrokers messageCacheBrokers topicName
+                          columns:
+                            - 35%
+                            - 35%
+                            - auto
+                        alignRow: baseline
+                        properties:
+                          messageCacheBrokers:
+                            type: string
+                            title: Message Cache Brokers
+                            description: Comma-separated list in host:port format, for example broker1:9092,broker2:9092
+                            validation:
+                              message: Please specify at least one message-cache broker
+                              required: true
+                          topicName:
+                            type: string
+                            title: Topic Name
+                            validation:
+                              message: Please specify a valid topic
+                              required: true
+                      mc2:
+                        type: grid
+                        ui:
+                          areas:
+                            - messageCacheUsername messageCachePassword groupName groupName
+                          columns:
+                            - 35%
+                            - 35%
+                            - auto
+                        alignRow: baseline
+                        properties:
+                          messageCacheUsername:
+                            type: string
+                            title: Message Cache Username
+                            validation:
+                              message: Please specify broker username
+                              required: true
+                          messageCachePassword:
+                            type: password
+                            title: Message Cache Password
+                            validation:
+                              message: Please specify broker password
+                              required: true
+                          groupName:
+                            type: string
+                            title: Group Name
+                            validation:
+                              message: Please specify group id
+                              required: true
+                      optionalSettings:
+                        type: expansion-panel
+                        title: Optional Settings
+                        ui:
+                          elevation: 2
+                        properties:
+                          optionalSettingsGrid:
+                            type: grid
+                            ui:
+                              areas:
+                                - regexList regexList regexList regexList
+                                - sslContextParameters sslContextParameters embeddedXmlToEscape embeddedXmlToEscape
+                              columns:
+                                - auto
+                              alignRow: baseline
+                            properties:
+                              regexList:
+                                type: array
+                                title: Regular Expression list (apply regex)
+                                ui:
+                                  indexed: true
+                                  areas:
+                                    - pattern replacement
+                                help:
+                                  icon: info-circle
+                                  content: >-
+                                    ### Apply Regular Expression parsing
+
+                                    You can define a list of regular expressions to be applied against the incoming body. Each expression will be executed in the order listed below.
+
+                                    ##### See examples below
+
+
+                                        # escape unescaped backslashes
+                                        example data: {"message": "This message contains an \unescaped\ backslashes"}
+                                        pattern:      \\
+                                        replacement:  \\\\
+
+                                        # remove everything before <alert>
+                                        example data: "IntegrationId ABC:111 | <alert><domain>someserver</domain></alert>"
+                                        pattern:      ^.*?<alert>
+                                        replacement:  <alert>
+
+                                        # remove everything after ABC
+                                        example data: "IntegrationId ABC:111 | <alert><domain>someserver</domain></alert>"
+                                        pattern:      ABC.*
+                                        replacement:  (empty string)
+
+                                        # replace all occurrences of apple with orange
+                                        example data: "I like apple pie."
+                                        pattern:      (?i)apple
+                                        replacement:  orange
+
+                                        # remove trailing spaces
+                                        example data: "The quick brown fox   "
+                                        pattern:      \s+$
+                                        replacement:  (empty string)
+                                propertyTemplate:
+                                  pattern:
+                                    type: string
+                                    title: Pattern
+                                  replacement:
+                                    type: string
+                                    title: Replacement
+                              sslContextParameters:
+                                title: SSL Context Parameters
+                                type: sslcontext
+                              embeddedXmlToEscape:
+                                title: Embedded XML Root Element
+                                type: string
+          destinationSection:
+            type: object
+            properties:
+              destinationHeader:
+                type: header
+                title: Destination Configuration
+              destinationContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  commandConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: center
+                    properties:
+                      destinationTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Destination Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Destination Properties
+
+                                  The following properties can be specified for the destination.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Destination | Defines the output targets for this pipeline, specifying where the output will be directed |
+                      destinationValue:
+                        type: object
+                        properties:
+                          destinationGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                              alignRow: baseline
+                            properties:
+                              destinationServers:
+                                type: outputtarget
+                                title: Destination
+          optionalSettings:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              characterLimitGrid:
+                type: grid
+                ui:
+                  columns:
+                    - auto
+                    - auto
+                properties:
+                  fieldLimit:
+                    type: number
+                    title: Field Limit
+                    defaultValue: 256
+                    help:
+                      icon: info-circle
+                      content: |-
+                        The maximum number of characters allowed in each field of the incoming message
+                  messageLimit:
+                    type: number
+                    title: Message Limit
+                    defaultValue: 4096
+                    help:
+                      icon: info-circle
+                      content: |-
+                        The maximum number of characters allowed in the message after it has been formatted
+              togglePreprocessHeaders:
+                type: switch
+                title: Configure Pre-process Headers
+                defaultValue: false
+              conditional-section-preprocessHeaders:
+                type: conditional
+                expression:
+                  left: $togglePreprocessHeaders
+                  operator: '=='
+                  right: true
+                properties:
+                  preprocessHeaders:
+                    type: array
+                    title: Pre-processing Headers Override
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                    propertyTemplate:
+                      expression:
+                        type: text
+                        title: The expression to match
+                        help:
+                          icon: info-circle
+                          content: >-
+                            ### Simple Expressions
+
+
+                            > **field** _operator_ **value**
+
+
+                            ##### field: the field that referenced from the incoming message. To match against the whole string use **\${bodyAs(String)}** , to reference a specific field use **\${body.hostname}**
+
+                            ##### value: the value being tested against
+
+                            ##### operators
+
+
+                                ==          equals
+                                =~          equals (case insensitive)
+                                !=          does not equal
+                                !=~         does not equal (case insensitive)
+                                contains    contains string
+                                !contains   does not contain
+                                regex       matches regex expression
+                                !regex      does not match regex expression
+                                &&          AND multiple expressions
+                                ||          OR multiple expressions
+
+                            ##### See examples below
+
+
+                                # match any string
+                                ${bodyAs(String)} regex '(?s)(.*?)'
+                                # incoming message contains 'this' but not 'that'
+                                ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                                # incoming message contains 'dog' or 'cat'
+                                ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                                # incoming message field 'username' equals 'ppadmin'
+                                ${body.username} == 'ppadmin'
+                                # incoming message field 'username' is not null
+                                ${body.username} != null
+                                # incoming message field 'origindate' equals todays date
+                                ${body.origindate} == ${date:now:yyyyMMdd}
+                      headers:
+                        type: map
+                        title: Headers
+                        ui:
+                          keyPlaceholder: Header Name
+                        valueSchema:
+                          type: text
+                          ui:
+                            placeholder: Header Value
+              toggleAllowDenyList:
+                type: switch
+                title: Configure Allow/Deny List
+                defaultValue: false
+              conditional-section-allow-deny:
+                type: conditional
+                expression:
+                  left: $toggleAllowDenyList
+                  operator: "=="
+                  right: true
+                properties:
+                  allowList:
+                    type: array
+                    title: Allow list (process if expression is matched)
+                    ui:
+                      indexed: true
+                    help:
+                      icon: info-circle
+                      content: >-
+                        ### Simple Expressions
+
+
+                        > **field** _operator_ **value**
+
+
+                        ##### field: the field that referenced from the incoming message. To match against the whole string use **\${bodyAs(String)}** , to reference a specific field use **\${body.hostname}**
+
+                        ##### value: the value being tested against
+
+                        ##### operators
+
+
+                            ==          equals
+                            =~          equals (case insensitive)
+                            !=          does not equal
+                            !=~         does not equal (case insensitive)
+                            contains    contains string
+                            !contains   does not contain
+                            regex       matches regex expression
+                            !regex      does not match regex expression
+                            &&          AND multiple expressions
+                            ||          OR multiple expressions
+
+                        ##### See examples below
+
+
+                            # match any string
+                            ${bodyAs(String)} regex '(?s)(.*?)'
+                            # incoming message contains 'this' but not 'that'
+                            ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                            # incoming message contains 'dog' or 'cat'
+                            ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                            # incoming message field 'username' equals 'ppadmin'
+                            ${body.username} == 'ppadmin'
+                            # incoming message field 'username' is not null
+                            ${body.username} != null
+                            # incoming message field 'origindate' equals todays date
+                            ${body.origindate} == ${date:now:yyyyMMdd}
+                  denyList:
+                    type: array
+                    title: Deny list (drop if expression is matched)
+                    ui:
+                      indexed: true
+                    help:
+                      icon: info-circle
+                      content: >-
+                        ### Simple Expressions
+
+
+                        > **field** _operator_ **value**
+
+
+                        ##### field: the field that referenced from the incoming message. To match against the whole string use **\${bodyAs(String)}** , to reference a specific field use **\${body.hostname}**
+
+                        ##### value: the value being tested against
+
+                        ##### operators
+
+
+                            ==          equals
+                            =~          equals (case insensitive)
+                            !=          does not equal
+                            !=~         does not equal (case insensitive)
+                            contains    contains string
+                            !contains   does not contain
+                            regex       matches regex expression
+                            !regex      does not match regex expression
+                            &&          AND multiple expressions
+                            ||          OR multiple expressions
+
+                        ##### See examples below
+
+
+                            # match any string
+                            ${bodyAs(String)} regex '(?s)(.*?)'
+                            # incoming message contains 'this' but not 'that'
+                            ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                            # incoming message contains 'dog' or 'cat'
+                            ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                            # incoming message field 'username' equals 'ppadmin'
+                            ${body.username} == 'ppadmin'
+                            # incoming message field 'username' is not null
+                            ${body.username} != null
+                            # incoming message field 'origindate' equals todays date
+                            ${body.origindate} == ${date:now:yyyyMMdd}
+              toggleFilter:
+                type: switch
+                title: Configure Filters
+                defaultValue: false
+              conditional-section-filters:
+                type: conditional
+                expression:
+                  left: $toggleFilter
+                  operator: '=='
+                  right: true
+                properties:
+                  placeholders:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                    properties:
+                      newlinePlaceholder:
+                        type: string
+                        title: Newline Placeholder
+                        description: >-
+                          Replace newline characters with this value, defaults to a single space
+                      blankPlaceholder:
+                        type: string
+                        title: Blank Placeholder
+                        description: Replace blank keys with this value, defaults to a 'N/A'
+                      includeHeaders:
+                        type: switch
+                        title: Include Headers in Processed Message
+                  filters:
+                    type: array
+                    title: filter and format messages
+                    ui:
+                      columns:
+                        - auto
+                      areas:
+                        - expression split format format
+                        - stringifiedJsonFields stringifiedXmlFields fieldToMap fieldToMap
+                        - destinations destinations destinations destinations
+                    propertyTemplate:
+                      expression:
+                        type: string
+                        title: Expression
+                        help:
+                          icon: info-circle
+                          content: >-
+                            ### Simple Expressions
+
+
+                            > **field** _operator_ **value**
+
+
+                            ##### field: the field that referenced from the incoming message. To match against the whole string use **\${bodyAs(String)}** , to reference a specific field use **\${body.hostname}**
+
+                            ##### value: the value being tested against
+
+                            ##### operators
+
+
+                                ==          equals
+                                =~          equals (case insensitive)
+                                !=          does not equal
+                                !=~         does not equal (case insensitive)
+                                contains    contains string
+                                !contains   does not contain
+                                regex       matches regex expression
+                                !regex      does not match regex expression
+                                &&          AND multiple expressions
+                                ||          OR multiple expressions
+
+                            ##### See examples below
+
+
+                                # match any string
+                                ${bodyAs(String)} regex '(?s)(.*?)'
+                                # incoming message contains 'this' but not 'that'
+                                ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                                # incoming message contains 'dog' or 'cat'
+                                ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                                # incoming message field 'username' equals 'ppadmin'
+                                ${body.username} == 'ppadmin'
+                                # incoming message field 'username' is not null
+                                ${body.username} != null
+                                # incoming message field 'origindate' equals todays date
+                                ${body.origindate} == ${date:now:yyyyMMdd}
+                      format:
+                        type: string
+                        title: Format
+                        help:
+                          icon: info-circle
+                          content: >-
+                            # Transform Format
+
+                            The format output redefines how you wish to transform the message.
+
+
+                            ## JSON Object example
+
+                            incoming message
+
+
+                                {
+                                  "user": {
+                                    "name": "ppadmin",
+                                    "uid": 229,
+                                    "group": "ppusers"
+                                  },
+                                  "origindate": "2022-12-15 12:01:34"
+                                }
+
+                            ### auto mapping
+
+                            Auto transform format
+
+
+                                UserAlert ${auto}
+
+                            Transformed output
+
+
+                                UserAlert datetime = 2022-12-15 12:01:34 | name = ppadmin | group = ppusers | Accept = text/plain, application/xml, text/xml, application/json, application/*+xml, application/*+json, */* |  Accept-Encoding = gzip,deflate |  Connection = keep-alive |  Content-Length = 114 |  Content-Type = application/json |  correlationId = 43CA053BE23B183-0000000000000002 |  Host = localhost:30052 |  HttpCharacterEncoding = UTF-8 |  HttpMethod = POST |  HttpPath = N/A |  HttpQuery = null |  HttpUri = / |  HttpUrl = [http://localhost:30052/](http://localhost:30052/) |  parentId = 43CA053BE23B183-0000000000000001 |  ServletContextPath = / |  User-Agent = Apache-HttpClient/4.5.13 (Java/1.8.0_241) |
+
+                            ### pre-defined mapping
+
+
+                            Pre-defined transform format
+
+                                UserAlert datetime = ${body.origindate} | name = ${body.user.name} | group = ${body.user.group} |
+
+                            Transformed output
+
+
+                                UserAlert datetime = 2022-12-15 12:01:34 | name = ppadmin | group = ppusers |
+
+                            ## JSON Array example
+
+                            incoming message
+
+
+                                {
+                                  "testfield": "VALUE1",
+                                  "testfield2": "VALUE2",
+                                  "nested": {
+                                    "nestedField": "hello",
+                                  },
+                                  "array": [
+                                    "array1",
+                                    "array2",
+                                    "array3"
+                                  ]
+                                }
+
+                            ### auto mapping
+
+                            Auto transform format
+
+
+                                UserAlert \${auto}
+
+                            Transformed output
+
+
+                                UserAlert array.0 = array1 |  array.1 = array2 |  array.2 = array3 |  testfield2 = VALUE2 |   nested.nestedField = hello |  testfield = VALUE1 |   Accept = text/plain, application/xml, text/xml, application/json, application/*+xml, application/*+json, */* |  Accept-Encoding = gzip,deflate |  Connection = keep-alive |  Content-Length = 114 |  Content-Type = application/json |  correlationId = 43CA053BE23B183-0000000000000002 |  Host = localhost:30052 |  HttpCharacterEncoding = UTF-8 |  HttpMethod = POST |  HttpPath = N/A |  HttpQuery = null |  HttpUri = / |  HttpUrl = [http://localhost:30052/](http://localhost:30052/) |  parentId = 43CA053BE23B183-0000000000000001 |  ServletContextPath = / |  User-Agent = Apache-HttpClient/4.5.13 (Java/1.8.0_241) |
+
+                            ### pre-defined mapping
+
+
+                            Pre-defined transform format
+
+
+                                UserAlert firstOne = ${body.array[0]} | msg = ${body.nested.nestedField} |
+                            Transformed output
+
+
+                                UserAlert firstOne = array1 | msg = hello |
+                      split:
+                        type: string
+                        title: Split
+                        defaultValue: ${body}
+                        help:
+                          icon: info-circle
+                          content: >-
+                            # Split messages
+
+                            The split expression allows you to split an payload containing an array in to multiple events, by default it will split the main body of the message
+
+
+                            ## JSON Array example
+
+                            By default it will split the payload if it is an array.
+
+                            For example:
+
+
+                                [
+                                  {
+                                    "user": {
+                                      "name": "ppadmin",
+                                      "uid": 229,
+                                      "group": "ppusers"
+                                    },
+                                    "origindate": "2022-12-15 12:01:34"
+                                  },
+                                  {
+                                    "user": {
+                                      "name": "Jeff",
+                                      "uid": 456,
+                                      "group": "ppusers"
+                                    },
+                                    "origindate": "2022-12-15 15:56:27"
+                                  }
+                                ]
+
+                            Will result in two messages being sent to the destination.
+
+
+                            ### Specifying the split expression
+
+                            If you wish to split over a nested array, you can define the path to the "array".
+
+                            With an incoming message of:
+
+
+                                {
+                                  "data": [
+                                    {
+                                      "user": {
+                                        "name": "ppadmin",
+                                        "uid": 229,
+                                        "group": "ppusers"
+                                      },
+                                      "origindate": "2022-12-15 12:01:34"
+                                    },
+                                    {
+                                      "user": {
+                                        "name": "Jeff",
+                                        "uid": 456,
+                                        "group": "ppusers"
+                                      },
+                                      "origindate": "2022-12-15 15:56:27"
+                                    }
+                                  ]
+                                }
+
+                            The split expression will be:
+
+                                ${body.data}
+                      stringifiedJsonFields:
+                        type: array
+                        title: JSON Fields
+                        help:
+                          icon: info-circle
+                          content: >-
+                            ### JSON Unpacking
+
+
+                            ##### A list of fields to unpack that contain stringified JSON values
+                      stringifiedXmlFields:
+                        type: array
+                        title: XML Fields
+                        help:
+                          icon: info-circle
+                          content: >-
+                            ### XML Unpacking
+
+
+                            ##### A list of fields to unpack that contain stringified XML values
+                      fieldToMap:
+                        type: array
+                        title: Field to Map
+                        help:
+                          icon: info-circle
+                          content: >-
+                            ### Field to Map
+
+                            A list of fields in the body that contain delimited key-value string data<br/><br/>**(e.g., key = value | key2 = value2)**<br/><br/>Each field will be parsed into a map for easier access to individual values when configuring a custom alert format.<br/><br/>For example, take the following body:<br/><br/>
+
+                            ```
+
+                              {
+                                "currentTime": "2025-07-17T14:16:02+0100",
+                                "raw": "IntegrationId xxxxxxxxxxxxxxxxxxxxxxx:2758961 | piPATROL3 | className = NOTIFY_EVENT | hostName = xxxxxxxxxxxxxxxxxxxxxxx | origin = LOGMON.patrol.domain | type = ALARM | eid = 2758961 | severity = 5 | catalog = DEMO_CATALOG | eventHandle = 140028885938320 | status = OPEN (1) | time = 17/07/2025 14:16:02.000 | owner = Patrol | expectancy = STORED | application = LOGMON | instance = patrol | parameter = LOGErrorLvl | desc = NOTIFY_EVENT Message: Log Match Count 1 Alert: patrol disk usage is still above threshold   Event Details: gbl20052735,128.15.102.85,3300,3300,LOGMON,patrol,...atrol_script.sh,/LOGT/patrol_script,LOGErrorLvl,OK,3,07/17/2025,14:16:02,BST,3.00 3.00 3.00 3.00 3.00 3.00 3.00 3.00 3.00 3.00 ,3.00,1752757073 1752757194 1752757315 1752757436 1752757557 1752757678 1752757799 1752757920 1752758041 1752758162,18.15,2758960,,Linux 3.10.0-1160.135.1.el7.x86_64,0,0,,,V22.1.00.05i,/opt/patrol/PATROL/Linux-2-6-x86-64-nptl,LOG,LOGGeneral,OPEN,4,ALARM  Notification File: null | ",
+                                "correlationId": "70B37C0E533FE19-0000000000000186",
+                                "fileIndex": "2156",
+                                "fileName": "/opt/ISS/logs/piPATROL-20250717.log",
+                                "fileSize": "1284787"
+                              }
+                            ```
+
+                            <br/><br/>To access the values within the **raw** field, we need to first extract its contents into a structured map.<br/><br/>
+
+                            To do this, we specify **raw** in the **Fields to Map** setting. This instructs the pipeline to parse the pipe-delimited key = value string into key-value pairs.<br/><br/>
+
+                            Once parsed, these values can be accessed directly in the **format**, for example:<br/><br/>
+
+                            `Alerts Fields | className = ${exchange.properties.parsedFields.className} | hostName = ${exchange.properties.parsedFields.hostName} | origin = ${exchange.properties.parsedFields.origin}`
+                      destinations:
+                        type: array
+                        title: Filter destinations
+                        ui:
+                          areas:
+                            - expression expression expression expression
+                            - destinationNames destinationNames destinationNames sendToGlobalDestination
+                        propertyTemplate:
+                          expression:
+                            type: string
+                            title: Expression
+                            help:
+                              icon: info-circle
+                              content: >-
+                                ### Simple Expressions
+
+
+                                > **field** _operator_ **value**
+
+
+                                ##### field: the field that referenced from the incoming message. To match against the whole string use **\${bodyAs(String)}** , to reference a specific field use **\${body.hostname}**
+
+                                ##### value: the value being tested against
+
+                                ##### operators
+
+
+                                    ==          equals
+                                    =~          equals (case insensitive)
+                                    !=          does not equal
+                                    !=~         does not equal (case insensitive)
+                                    contains    contains string
+                                    !contains   does not contain
+                                    regex       matches regex expression
+                                    !regex      does not match regex expression
+                                    &&          AND multiple expressions
+                                    ||          OR multiple expressions
+
+                                ##### See examples below
+
+
+                                    # match any string
+                                    ${bodyAs(String)} regex '(?s)(.*?)'
+                                    # incoming message contains 'this' but not 'that'
+                                    ${bodyAs(String)} =~ 'this' && ${bodyAs(String)} !=~ 'that'
+                                    # incoming message contains 'dog' or 'cat'
+                                    ${bodyAs(String)} =~ 'dog' || ${bodyAs(String)} !=~ 'cat'
+                                    # incoming message field 'username' equals 'ppadmin'
+                                    ${body.username} == 'ppadmin'
+                                    # incoming message field 'username' is not null
+                                    ${body.username} != null
+                                    # incoming message field 'origindate' equals todays date
+                                    ${body.origindate} == ${date:now:yyyyMMdd}
+                          destinationNames:
+                            type: outputtarget
+                            title: Destination
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Destination Properties
+
+                                  The following properties can be specified for the destination.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Destination | Defines the output targets for this pipeline, specifying where the output will be directed |
+                          sendToGlobalDestination:
+                            defaultValue: true
+                            type: checkbox
+                            title: Send to global destination
+              throttleEnabled:
+                type: switch
+                title: Enable Throttling
+                defaultValue: false
+              conditional-section-throttling:
+                type: conditional
+                expression:
+                  left: $throttleEnabled
+                  operator: "=="
+                  right: true
+                properties:
+                  throttleGrid:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                    properties:
+                      throttleCount:
+                        type: number
+                        title: Throttle Count
+                        defaultValue: 10
+                      throttlePeriod:
+                        title: Throttle Period
+                        type: string
+                        defaultValue: 10s
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: "=="
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of failed/dropped/success/processed/received messages to display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages received
+                      logDropped:
+                        defaultValue: true
+                        type: checkbox
+                        title: log dropped messages
+                      logProcessed:
+                        type: checkbox
+                        title: log processed messages
+                        defaultValue: true
+                      logSuccess:
+                        defaultValue: true
+                        type: checkbox
+                        title: log success messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed messages
+      pipelineFlow:
+        - type: block
+          label: Message Cache
+          icon: random
+        - type: pipe
+          children:
+            - type: arrow
+              forward: true
+              pullBackward: true
+            - type: block
+              label: drop
+              icon: trash-can
+            - type: arrow
+              forward: true
+            - type: block
+              label: filter
+              icon: filter
+            - type: arrow
+              forward: true
+            - type: block
+              label: transform
+              icon: shuffle
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          icon: arrow-down-to-square
+          label: "Forward to TCP Socket(s)"
+      exceptions:
+        # REF-AOD - Catch data conversion exceptions
+        - catches:
+            - "com.fasterxml.jackson.core.JsonParseException"
+            - "com.fasterxml.jackson.core.io.JsonEOFException"
+            - "org.yaml.snakeyaml.parser.ParserException"
+          handled:
+            type: constant
+            expression: "true"
+          use-original-message: true
+          steps:
+            # REF-OCY - Log the error
+            - method: log
+              level: ERROR
+              message: "Error parsing body: ${body}. Caused by: ${exception.message}"
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | Error processing the body, please check the logs for more details. Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+        # REF-EJC - Catch generic exception
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "Error processing data: ${exception}"
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | Error processing the body, please check the logs for more details. Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+        # REF-M0L - Catch No payload
+        - catches:
+            - "org.apache.integration_hub.NoTypeConversionAvailableException"
+            - "com.fasterxml.jackson.databind.exc.MismatchedInputException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: ERROR
+              message: "No content in the payload: ${exception}"
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | No content in body. Exception=${exception.message}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+        # REF-XAG - Failed to send on socket
+        - catches:
+            - "java.net.ConnectException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: "ERROR"
+              message: "Failed to send body to ${exchangeProperty.destinationHost}"
+            # REF-4KD - Write log message to failed file
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed(${exchange.properties['filterExpression']}) | [dest=${exchangeProperty.destinationHost}, message=${exchange.properties['internalProcessedMessage']}]"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+        - catches:
+            - "org.apache.integration_hub.processor.ThrottlerRejectedExecutionException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            # REF- - Log the error
+            - method: log
+              level: "ERROR"
+              message: "Throttle limit reached, dropping message: ${exception}"
+            - method: isslog
+              message: "dropped | ${exception}"
+              type: dropped
+              writeToFile: $[[logDropped]]
+              writeToDatabase: $[[logDropped]]
+              queueSize: $[[uiMessageLimit]]
+            - method: stop
+        - catches:
+            - "org.apache.kafka.common.errors.TimeoutException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed to send the body: ${exception.stacktrace}"
+            - method: isslog
+              message: "correlationId=${headers.correlationId} | failed | TimeoutException [destination=${exchangeProperty.destinationHost}, message=${exchange.properties['internalProcessedMessage']}]"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+      steps:
+        - method: from
+          component: kafka
+          properties:
+            brokers: $[[messageCacheBrokers]]
+            topic: $[[topicName]]
+            groupId: $[[groupName]]
+            securityProtocol: SASL_SSL
+            sslContextParameters: "$[[sslContextParameters]]"
+            saslMechanism: PLAIN
+            saslJaasConfig: "org.apache.kafka.common.security.plain.PlainLoginModule required username=$[[messageCacheUsername]] password=$[[messageCachePassword]];"
+        - method: setProperty
+          key: dateCreated
+          value:
+            type: groovy
+            expression: |
+              import java.time.LocalDateTime
+              import java.time.format.DateTimeFormatter
+              def now = LocalDateTime.now()
+              def formattedDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"))
+              return formattedDate
+        - method: throttle
+          # disabled: $[[throttleEnabled]]
+          count: $[[throttleCount]]
+          period: $[[throttlePeriod]]
+          rejectExecution: true
+        # REF-B9G - Store incoming message as "internalOrigMsg" property
+        - method: setProperty
+          key: internalOrigMsg
+          value:
+            type: "simple"
+            expression: "${body}"
+        # REF- - Set header "requestId" to the initial "parent" correlationId
+        - method: setProperty
+          key: parentId
+          value:
+            type: "simple"
+            expression: "${exchangeId}"
+        - method: setHeader
+          key: topic
+          value:
+            type: simple
+            expression: "${headers[kafka.TOPIC]}"
+        - method: setHeader
+          key: groupName
+          value:
+            type: simple
+            expression: "$[[groupName]]"
+        - method: setHeader
+          key: partition
+          value:
+            type: simple
+            expression: "${headers[kafka.PARTITION]}"
+        - method: setHeader
+          key: offset
+          value:
+            type: simple
+            expression: "${headers[kafka.OFFSET]}"
+        - method: setHeader
+          key: key
+          value:
+            type: simple
+            expression: "${headers[kafka.KEY]}"
+        # REF- - Store headers in exchange
+        - method: process
+          classname: com.interlinksoftware.integrationhub.config.step.processor.HeadersToPropertyProcessor
+        # REF- - Debug message
+        - method: log
+          level: "DEBUG"
+          message: "Writing body to received file"
+        # REF-H9Z - Log message to file
+        - method: isslog
+          message: "received | ${bodyAs(String)}"
+          type: received
+          queueSize: $[[uiMessageLimit]]
+          writeToFile: $[[logReceived]]
+          writeToDatabase: $[[logReceived]]
+        # REF- - Set body to origin message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.internalOrigMsg}"
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[preprocessHeaders]} != null && ${exchangeProperty.placeholders[preprocessHeaders]} != 'NOT_SET' && ${exchangeProperty.placeholders[preprocessHeaders]} is 'java.util.List' && ${exchangeProperty.placeholders[preprocessHeaders].size()} > 0"
+              steps:
+                - method: loop
+                  expression:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[preprocessHeaders].size()}"
+                  copy: false
+                  steps:
+                    - method: choice
+                      when:
+                        - predicate:
+                            type: simple
+                            expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex}).getOrDefault(expression, NOT_SET)} != 'NOT_SET'"
+                          steps:
+                            - method: setProperty
+                              key: preprocessHeaderExpression
+                              value:
+                                type: "simple"
+                                expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[expression]}"
+                            - method: choice
+                              when:
+                                - predicate:
+                                    type: simple
+                                    expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex}).getOrDefault(headers, NOT_SET)} != 'NOT_SET' && ${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[headers]} is 'java.util.Map'"
+                                  steps:
+                                    - method: choice
+                                      when:
+                                        - predicate:
+                                            type: groovy
+                                            expression: |
+                                              preprocessHeaderExpression = exchange.properties.get("preprocessHeaderExpression")
+                                              language = exchange.getContext().resolveLanguage("simple")
+                                              predicate = language.createPredicate(preprocessHeaderExpression)
+                                              return predicate.matches(exchange);
+                                          steps:
+                                            - method: log
+                                              level: "DEBUG"
+                                              message: "Preprocess header expression(${exchangeProperty.preprocessHeaderExpression}) matches!!"
+                                            - method: setBody
+                                              expression:
+                                                type: simple
+                                                expression: "${exchangeProperty.placeholders[preprocessHeaders].get(${header.Integration_HubLoopIndex})[headers]}"
+                                            - method: process
+                                              classname: com.interlinksoftware.integrationhub.config.step.processor.BodyToHeadersProcessor
+                                      otherwise:
+                                        - method: log
+                                          level: "DEBUG"
+                                          message: "Preprocess header expression(${exchangeProperty.preprocessHeaderExpression}) does not match"
+                              otherwise:
+                                - method: log
+                                  level: "ERROR"
+                                  message: "No headers for expression(exchangeProperty.preprocessHeaderExpression) in preprocessor definition '(${header.Integration_HubLoopIndex})'"
+                      otherwise:
+                        - method: log
+                          level: "ERROR"
+                          message: "No expression in preprocessor definition '${header.Integration_HubLoopIndex}'"
+          otherwise:
+            - method: log
+              level: "DEBUG"
+              message: "No preprocessor definitions"
+        # REF- - Set body to origin message
+        - method: setBody
+          expression:
+            type: simple
+            expression: "${exchangeProperty.internalOrigMsg}"
+        # REF- - Handle regex list
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[regexList]} != null && ${exchangeProperty.placeholders[regexList]} != 'NOT_SET' && ${exchangeProperty.placeholders[regexList]} is 'java.util.List' && ${exchangeProperty.placeholders[regexList].size()} > 0"
+              steps:
+                - method: loop
+                  expression:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[regexList].size()}"
+                  copy: false
+                  steps:
+                    - method: setProperty
+                      key: regexListItem
+                      value:
+                        type: "simple"
+                        expression: "${exchangeProperty.placeholders[regexList].get(${header.Integration_HubLoopIndex})}"
+                    - method: setProperty
+                      key: sanitizedBody
+                      value:
+                        type: groovy
+                        expression: |
+                          def previousBody = exchange.getProperty("sanitizedBody", String.class)
+                          def currentBody = previousBody != null ? previousBody : exchange.getIn().getBody(String)
+
+                          def regexListItem = exchange.properties.get("regexListItem")
+                          def regexPattern = regexListItem.get("pattern")
+                          def regexReplacement = regexListItem.get("replacement")
+
+                          return currentBody.replaceAll(regexPattern, regexReplacement)
+                    - method: setBody
+                      expression:
+                        type: "simple"
+                        expression: "${exchangeProperty.sanitizedBody}"
+        - method: choice
+          when:
+            - predicate:
+                type: simple
+                expression: "${exchangeProperty.placeholders[embeddedXmlToEscape]} != null && ${exchangeProperty.placeholders[embeddedXmlToEscape]} != 'NOT_SET'"
+              steps:
+                - method: log
+                  level: "DEBUG"
+                  message: "Escaping embedded XML"
+                - method: convertBodyTo
+                  type: String
+                - method: setBody
+                  expression:
+                    type: groovy
+                    expression: |
+                      def placeholders = exchange.getProperty("placeholders", Map)
+                      def xmlRoot = placeholders?.get("embeddedXmlToEscape")
+                      def bodyStr = body
+
+                      def startTag = "<${xmlRoot}>"
+                      def endTag = "</${xmlRoot}>"
+
+                      def startIdx = bodyStr.indexOf(startTag)
+                      def endIdx = bodyStr.indexOf(endTag)
+
+                      exchange.setProperty("xmlMatch", true)
+
+                      if (startIdx == -1 || endIdx == -1) {
+                          exchange.setProperty("xmlMatch", false)
+                          return bodyStr
+                      }
+
+                      endIdx += endTag.length()
+                      def originalXml = bodyStr.substring(startIdx, endIdx)
+
+                      def escapedXml = originalXml.replaceAll('(?<!\\\\)"', '\\\\\"')
+
+                      def before = bodyStr.substring(0, startIdx)
+                      def after = bodyStr.substring(endIdx)
+                      def updatedBody = before + escapedXml + after
+
+                      return updatedBody
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${exchangeProperty.xmlMatch.toString()} != 'true'"
+                      steps:
+                        - method: isslog
+                          message: "parentId=${exchange.properties[parentId]} | failed() | Could not find XML element: [${exchangeProperty.placeholders[embeddedXmlToEscape]}] in the body | ${bodyAs(String)}"
+                          type: failed
+                          queueSize: $[[uiMessageLimit]]
+                          writeToFile: $[[logFailed]]
+                          writeToDatabase: $[[logFailed]]
+                        - method: stop
+        # REF-4IZ - Data decoding
+        - method: choice
+          when:
+            # REF-BEK
+            - predicate:
+                type: simple
+                expression: "${header.Content-Encoding} in 'gzip,application/gzip'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from gzip"
+                - method: unmarshal
+                  type: gzip
+        # REF-1CY -  Datatype decoding
+        - method: choice
+          when:
+            # REF-0KL - Unmarshal JSON
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'json'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from json"
+                - method: unmarshal
+                  type: json
+                - method: choice
+                  when:
+                    - predicate:
+                        type: simple
+                        expression: "${body.getClass().getName()} == 'java.lang.String'"
+                      steps:
+                        - method: log
+                          level: "DEBUG"
+                          message: "decoding from json string - ${body.getClass().getName()}"
+                        - method: unmarshal
+                          type: json
+                # Cache the unmarshalled body
+                - method: setProperty
+                  key: unmarshalledBody
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # Append correlationId into the body
+                - method: setBody
+                  expression:
+                    type: "groovy"
+                    expression: |
+                      if (body instanceof Map) {
+                        body["correlationId"] = exchange.properties["parentId"]
+                      }
+
+                      if (body instanceof ArrayList) {
+                        body.eachWithIndex { it, i ->
+                          if (it instanceof Map) {
+                            body[i]["correlationId"] = exchange.properties["parentId"]
+                          }
+                        }
+                      }
+
+                      return body
+                # Convert the body back to its orig type
+                - method: marshal
+                  type: json
+                # Cache this body for use later on in the template
+                - method: setProperty
+                  key: rawBody
+                  value:
+                    type: "simple"
+                    expression: "${bodyAs(String)}"
+            # REF-FU6 - Unmarshal XML
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'xml'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from xml"
+                - method: unmarshal
+                  type: xml
+                # Cache the unmarshalled body
+                - method: setProperty
+                  key: unmarshalledBody
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # Append correlationId into the body
+                - method: setBody
+                  expression:
+                    type: "groovy"
+                    expression: |
+                      body["correlationId"] = exchange.properties["parentId"]
+                      return body
+                # Convert the body back to its orig type
+                - method: marshal
+                  type: xml
+                # Cache this body for use later on in the template
+                - method: setProperty
+                  key: rawBody
+                  value:
+                    type: "simple"
+                    expression: "${bodyAs(String)}"
+            # REF-5JV - Unmarshal YAML
+            - predicate:
+                type: simple
+                expression: "${header.Content-Type} ~~ 'yaml'"
+              steps:
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "decoding from yaml"
+                - method: unmarshal
+                  type: yaml
+                # Cache the unmarshalled body
+                - method: setProperty
+                  key: unmarshalledBody
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # Append correlationId into the body
+                - method: setBody
+                  expression:
+                    type: "groovy"
+                    expression: |
+                      body["correlationId"] = exchange.properties["parentId"]
+                      return body
+                # Convert the body back to its orig type
+                - method: marshal
+                  type: yaml
+                # Cache this body for use later on in the template
+                - method: setProperty
+                  key: rawBody
+                  value:
+                    type: "simple"
+                    expression: "${bodyAs(String)}"
+          # REF-SCT - If datatype is unknown
+          otherwise:
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "datatype '${header.Content-Type}' unknown"
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "writing to dropped file"
+            # REF-4UJ - Write log message to file
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | missed(${header.ContentType}) | ${bodyAs(String)}"
+              type: dropped
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logDropped]]
+              writeToDatabase: $[[logDropped]]
+            # REF-0OP - Set header "Integration_HubHttpResponseCode" to 400
+            - method: setHeader
+              key: Integration_HubHttpResponseCode
+              value:
+                type: constant
+                expression: 400
+            # REF-JEF - Set Body to error message
+            - method: setBody
+              expression:
+                type: simple
+                expression: "Unknown datatype '${header.Content-Type}'\\n"
+            # Stop processing any further
+            - method: stop
+        # Set the body back to the unmarshalled format
+        - method: setBody
+          expression:
+            type: "simple"
+            expression: "${exchangeProperty.unmarshalledBody}"
+        - method: split
+          resolve-maps-as-key-value: false
+          expressions:
+            - type: simple
+              expression: "${body}"
+          steps:
+            # REF- - Handle allow list
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[allowList]} != null && ${exchangeProperty.placeholders[allowList]} != 'NOT_SET' && ${exchangeProperty.placeholders[allowList]} is 'java.util.List' && ${exchangeProperty.placeholders[allowList].size()} > 0"
+                  steps:
+                    - method: loop
+                      expression:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[allowList].size()}"
+                      copy: false
+                      steps:
+                        - method: setProperty
+                          key: allowListExpression
+                          value:
+                            type: "simple"
+                            expression: "${exchangeProperty.placeholders[allowList].get(${header.Integration_HubLoopIndex})}"
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: groovy
+                                expression: |
+                                  allowListExpression = exchange.properties.get("allowListExpression")
+                                  language = exchange.getContext().resolveLanguage("simple")
+                                  predicate = language.createPredicate(allowListExpression)
+                                  return predicate.matches(exchange);
+                              steps:
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "allowList expression(${exchangeProperty.allowListExpression}) matches"
+                                - method: setProperty
+                                  key: allowListCheck
+                                  value:
+                                    type: "constant"
+                                    expression: true
+                          otherwise:
+                            - method: log
+                              level: "DEBUG"
+                              message: "allowList expression(${exchangeProperty.allowListExpression}) does not match"
+                            - method: setProperty
+                              key: allowListCheck
+                              value:
+                                type: groovy
+                                expression: |
+                                  prop = exchange.properties.getOrDefault("allowListCheck", "NOT_SET")
+                                  if (prop == "NOT_SET") {
+                                    return false;
+                                  } else {
+                                    return prop;
+                                  }
+              otherwise:
+                - method: log
+                  level: "DEBUG"
+                  message: "No allowList definitions"
+            - method: choice
+              when:
+                - predicate:
+                    type: "simple"
+                    expression: "${exchangeProperty.allowListCheck.toString()} =~ 'false'"
+                  steps:
+                    - method: log
+                      level: "DEBUG"
+                      message: "Message not allowed by allowList"
+                    - method: isslog
+                      message: "dropped | ${bodyAs(String)}"
+                      type: dropped
+                      writeToFile: $[[logDropped]]
+                      writeToDatabase: $[[logDropped]]
+                      queueSize: $[[uiMessageLimit]]
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: '{ "status": "dropped", "requestId": "${exchangeId}"}'
+                    - method: stop
+            # REF- - Handle deny list
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[denyList]} != null && ${exchangeProperty.placeholders[denyList]} != 'NOT_SET' && ${exchangeProperty.placeholders[denyList]} is 'java.util.List' && ${exchangeProperty.placeholders[denyList].size()} > 0"
+                  steps:
+                    - method: loop
+                      expression:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[denyList].size()}"
+                      copy: false
+                      steps:
+                        - method: setProperty
+                          key: denyListExpression
+                          value:
+                            type: "simple"
+                            expression: "${exchangeProperty.placeholders[denyList].get(${header.Integration_HubLoopIndex})}"
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: groovy
+                                expression: |
+                                  denyListExpression = exchange.properties.get("denyListExpression")
+                                  language = exchange.getContext().resolveLanguage("simple")
+                                  predicate = language.createPredicate(denyListExpression)
+                                  return predicate.matches(exchange);
+                              steps:
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "denyList expression(${exchangeProperty.denyListExpression}) matches"
+                                - method: setProperty
+                                  key: denyListCheck
+                                  value:
+                                    type: "constant"
+                                    expression: true
+                          otherwise:
+                            - method: log
+                              level: "DEBUG"
+                              message: "denyList expression(${exchangeProperty.denyListExpression}) does not match"
+                            - method: setProperty
+                              key: denyListCheck
+                              value:
+                                type: groovy
+                                expression: |
+                                  prop = exchange.properties.getOrDefault("denyListCheck", "NOT_SET")
+                                  if (prop == "NOT_SET") {
+                                    return false;
+                                  } else {
+                                    return prop;
+                                  }
+              otherwise:
+                - method: log
+                  level: "DEBUG"
+                  message: "No denyList definitions"
+            - method: choice
+              when:
+                - predicate:
+                    type: "simple"
+                    expression: "${exchangeProperty.denyListCheck.toString()} =~ 'true'"
+                  steps:
+                    - method: log
+                      level: "DEBUG"
+                      message: "Message not allowed by denyList"
+                    - method: isslog
+                      message: "dropped | ${bodyAs(String)}"
+                      type: dropped
+                      writeToFile: $[[logDropped]]
+                      writeToDatabase: $[[logDropped]]
+                      queueSize: $[[uiMessageLimit]]
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: '{ "status": "dropped", "requestId": "${exchangeId}"}'
+                    - method: stop
+            # REF-IS2 - If the message matches a template key
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[filters]} != null && ${exchangeProperty.placeholders[filters]} != 'NOT_SET' && ${exchangeProperty.placeholders[filters]} is 'java.util.List' && ${exchangeProperty.placeholders[filters].size()} > 0"
+                  steps:
+                    - method: setProperty
+                      key: continueFilterLoop
+                      value:
+                        type: constant
+                        expression: true
+                    - method: setProperty
+                      key: filterListSize
+                      value:
+                        type: simple
+                        expression: "${exchangeProperty.placeholders[filters].size()}"
+                    - method: doWhile
+                      predicate:
+                        type: simple
+                        expression: "${exchangeProperty.continueFilterLoop}"
+                      copy: false
+                      steps:
+                        - method: choice
+                          when:
+                            - predicate:
+                                type: groovy
+                                expression: |
+                                  def loopIndex = exchange.properties.get('filterLoopIndex', "0") as int;
+                                  def filterListSize = exchange.properties.get('filterListSize');
+
+                                  if (loopIndex >= filterListSize) {
+                                    // Exit from loop
+                                    exchange.properties.put("continueFilterLoop", false)
+                                    return false
+                                  }
+
+                                  def filters = exchange.properties.get('placeholders').get('filters')
+                                  def filterExpression = filters[loopIndex].get('expression')
+
+                                  exchange.properties.put("filterExpression", filterExpression)
+
+                                  filterExpression = exchange.properties.get("filterExpression")
+                                  language = exchange.getContext().resolveLanguage("simple")
+                                  predicate = language.createPredicate(filterExpression)
+                                  result = predicate.matches(exchange);
+                                  exchange.properties.put("continueFilterLoop", !result)
+                                  return result
+                              steps:
+                                - method: log
+                                  level: "DEBUG"
+                                  message: "filters expression(${exchangeProperty.filterExpression}) matches"
+                                - method: setProperty
+                                  key: filterCheck
+                                  value:
+                                    type: "constant"
+                                    expression: true
+                                - method: setProperty
+                                  key: filterFormat
+                                  value:
+                                    type: "simple"
+                                    expression: "${exchangeProperty.placeholders[filters].get(${exchangeProperty.filterLoopIndex}).getOrDefault('format', 'NOT_SET')}"
+                                - method: choice
+                                  when:
+                                    - predicate:
+                                        type: "simple"
+                                        expression: "${exchangeProperty.filterFormat.toString()} == 'NOT_SET'"
+                                      steps:
+                                        - method: setProperty
+                                          key: filterFormat
+                                          value:
+                                            type: "constant"
+                                            expression: "${auto}"
+                                - method: setProperty
+                                  key: filterSplit
+                                  value:
+                                    type: "simple"
+                                    expression: "${exchangeProperty.placeholders[filters].get(${exchangeProperty.filterLoopIndex}).getOrDefault('split', 'NOT_SET')}"
+                                - method: choice
+                                  when:
+                                    - predicate:
+                                        type: "simple"
+                                        expression: "${exchangeProperty.filterSplit.toString()} == 'NOT_SET'"
+                                      steps:
+                                        - method: setProperty
+                                          key: filterSplit
+                                          value:
+                                            type: "constant"
+                                            expression: "${body}"
+                                - method: setProperty
+                                  key: filterStringifedJsonFields
+                                  value:
+                                    type: "simple"
+                                    expression: "${exchangeProperty.placeholders[filters].get(${exchangeProperty.filterLoopIndex}).getOrDefault('stringifiedJsonFields', 'NOT_SET')}"
+                                - method: setProperty
+                                  key: filterStringifedXmlFields
+                                  value:
+                                    type: "simple"
+                                    expression: "${exchangeProperty.placeholders[filters].get(${exchangeProperty.filterLoopIndex}).getOrDefault('stringifiedXmlFields', 'NOT_SET')}"
+                                - method: setProperty
+                                  key: filterFieldToMap
+                                  value:
+                                    type: "simple"
+                                    expression: "${exchangeProperty.placeholders[filters].get(${exchangeProperty.filterLoopIndex}).getOrDefault('fieldToMap', 'NOT_SET')}"
+                          otherwise:
+                            - method: log
+                              level: "DEBUG"
+                              message: "filters expression(${exchangeProperty.filterExpression}) does not match"
+                            - method: setProperty
+                              key: filterCheck
+                              value:
+                                type: groovy
+                                expression: |
+                                  prop = exchange.properties.getOrDefault("filterCheck", "NOT_SET")
+                                  if (prop == "NOT_SET") {
+                                    return false;
+                                  } else {
+                                    return prop;
+                                  }
+                            - method: setProperty
+                              key: filterLoopIndex
+                              value:
+                                type: "groovy"
+                                expression: |
+                                  def loopIndex = exchange.properties.get('filterLoopIndex') as int;
+                                  return loopIndex + 1
+              otherwise:
+                - method: log
+                  level: "DEBUG"
+                  message: "No filters definitions"
+                - method: setProperty
+                  key: filterCheck
+                  value:
+                    type: "constant"
+                    expression: false
+            - method: choice
+              when:
+                - predicate:
+                    type: "simple"
+                    expression: "${exchangeProperty.filterCheck.toString()} =~ 'false'"
+                  steps:
+                    - method: setProperty
+                      key: filterFormat
+                      value:
+                        type: "constant"
+                        expression: "${auto}"
+                    - method: setProperty
+                      key: filterExpression
+                      value:
+                        type: "constant"
+                        expression: "DEFAULT"
+                    - method: setProperty
+                      key: filterSplit
+                      value:
+                        type: "constant"
+                        expression: "${body}"
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "body '${body}' has matched template statement '${exchangeProperty.filterExpression}'"
+            # REF-8R9 - Set property "internalMatchFound" to true
+            - method: setProperty
+              key: internalMatchFound
+              value:
+                type: "constant"
+                expression: true
+            - method: log
+              level: DEBUG
+              message: "filterStringifedJsonFields value [${exchangeProperty.filterStringifedJsonFields}]"
+            # Handle parsing field value into a map
+            - method: choice
+              when:
+                - predicate:
+                    type: groovy
+                    expression: |
+                      prop = exchange.properties.getOrDefault("filterFieldToMap", "NOT_SET")
+                      if (prop == "NOT_SET") {
+                        return false;
+                      } else {
+                        return true;
+                      }
+                  steps:
+                    - method: setProperty
+                      key: internalUnmarshalledMsg
+                      value:
+                        type: "simple"
+                        expression: "${body}"
+                    - method: loop
+                      expression:
+                        type: simple
+                        expression: "${exchangeProperty.filterFieldToMap.size()}"
+                      copy: true
+                      steps:
+                        - method: setProperty
+                          key: fieldToMapIndex
+                          value:
+                            type: "simple"
+                            expression: "${header.Integration_HubLoopIndex}"
+                    - method: setProperty
+                      key: parsedFields
+                      value:
+                        type: groovy
+                        expression: |
+                          def body = exchange.properties.get('internalUnmarshalledMsg')
+                          def fieldsToParse = ['raw', 'otherField']
+                          def mergedMap = [:]
+
+                          fieldsToParse.each { fieldName ->
+                            def rawStr = body[fieldName]
+                            if (rawStr instanceof String) {
+                              rawStr.split("\\|").each { part ->
+                                def trimmed = part.trim()
+                                def kv = trimmed.split("=", 2)
+                                if (kv.length == 2) {
+                                  def key = kv[0].trim()
+                                  def value = kv[1].trim()
+                                  mergedMap[key] = value
+                                }
+                              }
+                            }
+                          }
+
+                          return mergedMap
+            # Handle nested stringified json
+            - method: choice
+              when:
+                - predicate:
+                    type: groovy
+                    expression: |
+                      prop = exchange.properties.getOrDefault("filterStringifedJsonFields", "NOT_SET")
+                      if (prop == "NOT_SET") {
+                        return false;
+                      } else {
+                        return true;
+                      }
+                  steps:
+                    - method: setProperty
+                      key: internalUnmarshalledMsg
+                      value:
+                        type: "simple"
+                        expression: "${body}"
+                    - method: loop
+                      expression:
+                        type: simple
+                        expression: "${exchangeProperty.filterStringifedJsonFields.size()}"
+                      copy: true
+                      steps:
+                        - method: setProperty
+                          key: filterStringifiedJsonIndex
+                          value:
+                            type: "simple"
+                            expression: "${header.Integration_HubLoopIndex}"
+                        - method: setBody
+                          expression:
+                            type: groovy
+                            expression: |
+                              field = exchange.properties.filterStringifedJsonFields.get(exchange.properties.filterStringifiedJsonIndex.toString())
+                              return body.get(field)
+                        - method: unmarshal
+                          type: json
+                        - method: setBody
+                          expression:
+                            type: groovy
+                            expression: |
+                              internalUnmarshalledMsg = exchange.properties.internalUnmarshalledMsg
+                              field = exchange.properties.filterStringifedJsonFields.get(exchange.properties.filterStringifiedJsonIndex.toString())
+
+                              internalUnmarshalledMsg.put(field.toString(), body)
+                              return internalUnmarshalledMsg
+            - method: log
+              level: DEBUG
+              message: "filterStringifedXmlFields value [${exchangeProperty.filterStringifedXmlFields}]"
+            # Handle nested stringified xml
+            - method: choice
+              when:
+                - predicate:
+                    type: groovy
+                    expression: |
+                      prop = exchange.properties.getOrDefault("filterStringifedXmlFields", "NOT_SET")
+                      if (prop == "NOT_SET") {
+                        return false;
+                      } else {
+                        return true;
+                      }
+                  steps:
+                    - method: setProperty
+                      key: internalUnmarshalledMsg
+                      value:
+                        type: "simple"
+                        expression: "${body}"
+                    - method: loop
+                      expression:
+                        type: simple
+                        expression: "${exchangeProperty.filterStringifedXmlFields.size()}"
+                      copy: true
+                      steps:
+                        - method: setProperty
+                          key: filterStringifiedXmlIndex
+                          value:
+                            type: "simple"
+                            expression: "${header.Integration_HubLoopIndex}"
+                        - method: setBody
+                          expression:
+                            type: groovy
+                            expression: |
+                              // Get the current body value
+                              def bodyStr = exchange.getIn().getBody(String)
+
+                              // Find the position of "<alert>" and extract the string after it
+                              def alertIndex = bodyStr.indexOf("<alert>")
+                              if (alertIndex != -1) {
+                                  // Return the substring starting from the position after "<alert>"
+                                  return bodyStr.substring(alertIndex)
+                              }
+
+                              // If no "<alert>" is found, return the body as is
+                              return bodyStr
+                        - method: unmarshal
+                          type: xml
+                        - method: setBody
+                          expression:
+                            type: groovy
+                            expression: |
+                              internalUnmarshalledMsg = exchange.properties.internalUnmarshalledMsg
+                              field = exchange.properties.filterStringifedXmlFields.get(exchange.properties.filterStringifiedXmlIndex.toString())
+
+                              internalUnmarshalledMsg.put(field.toString(), body)
+                              return internalUnmarshalledMsg
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "splitting body using '${exchangeProperty.filterSplit}'"
+            # REF-SLB - Split payload if array
+            - method: split
+              resolve-maps-as-key-value: false
+              expressions:
+                - type: groovy
+                  expression: |
+                    filterSplitExpression = exchange.properties.get("filterSplit")
+                    language = exchange.getContext().resolveLanguage("simple")
+                    expression = language.createExpression(filterSplitExpression)
+                    return expression.evaluate(exchange);
+              steps:
+                # REF- - Store split message as "internalSplitMsg" header
+                - method: setProperty
+                  key: internalSplitMsg
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # REF- - Set Body to contents of property "internalSplitMsg"
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: "${exchange.properties[internalSplitMsg]}"
+                # REF- - Restore original headers
+                - method: process
+                  classname: com.interlinksoftware.integrationhub.config.step.processor.RestoreOriginHeadersProcessor
+                # REF- - Cleanse headers
+                - method: process
+                  classname: com.interlinksoftware.integrationhub.config.step.processor.CleanseHeadersProcessor
+                # REF- - Store exchangeId as CorrelationId
+                - method: setHeader
+                  key: correlationId
+                  value:
+                    type: simple
+                    expression: "${exchangeId}"
+                - method: log
+                  level: "WARN"
+                  message: "filterFormat='${exchangeProperty.filterFormat}', blankPlaceholder='$[[blankPlaceholder]]', newlinePlaceholder='$[[newlinePlaceholder]]', fieldLimit='$[[fieldLimit]]', messageLimit='$[[messageLimit]]'"
+                - method: alertFormat
+                  template: ${exchangeProperty.filterFormat}
+                  blankPlaceholder: "$[[blankPlaceholder]]"
+                  newlinePlaceholder: "$[[newlinePlaceholder]]"
+                  fieldLimit: $[[fieldLimit]]
+                  messageLimit: $[[messageLimit]]
+                  includeHeaders: $[[includeHeaders]]
+                # REF-OHH - Set property "internalProcessedMessage" to body
+                - method: setProperty
+                  key: internalProcessedMessage
+                  value:
+                    type: "simple"
+                    expression: "${body}"
+                # REF- - Debug message
+                - method: log
+                  level: "DEBUG"
+                  message: "writing to processed file"
+                # REF-4MH - Log message to file
+                - method: isslog
+                  message: "parentId=${exchange.properties[parentId]} | processed(${exchange.properties['filterExpression']}) | ${bodyAs(String)}"
+                  type: processed
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logProcessed]]
+                  writeToDatabase: $[[logProcessed]]
+                - method: choice
+                  when:
+                    - predicate:
+                        type: groovy
+                        expression: |
+                          destinations = exchange.properties.getOrDefault("filterDestinations", null)
+                          if (destinations == null || destinations.equals("NOT_SET")) {
+                            exchange.properties.put("sendToGlobal", true);
+                            return false;
+                          } else {
+                            tempDestinations = []
+
+                            for (value in destinations.values()) {
+                              exchange.properties.put("sendToGlobal", value.sendToGlobalDestination);
+                              def expression = value.expression ?: "default"
+
+                              if (expression != "default") {
+                                language = exchange.getContext().resolveLanguage("simple")
+                                simpleExpression = language.createPredicate(expression)
+
+                                matches = simpleExpression.matches(exchange)
+
+                                if (matches) {
+                                  tempDestinations = value.destinationNames.values().toList()
+                                  exchange.properties.put("filterDestinations", tempDestinations);
+                                  return true;
+                                }
+                              } else {
+                                tempDestinations.addAll(value.destinationNames.values().toList())
+                              }
+                            }
+
+                            exchange.properties.put("filterDestinations", tempDestinations);
+                            return true;
+                          }
+                      steps:
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: ${exchange.properties[internalProcessedMessage]}
+                        - method: destination
+                          outputRefExpression: ${exchangeProperty.filterDestinations}
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: ${exchange.properties[internalProcessedMessage]}
+                - method: choice
+                  when:
+                    - predicate:
+                        type: groovy
+                        expression: |
+                          sendToGlobal = exchange.properties.getOrDefault("sendToGlobal", "true")
+                          return sendToGlobal
+                      steps:
+                        - method: destination
+                          outputRefExpression: ${exchangeProperty.placeholders[destinationServers]}
