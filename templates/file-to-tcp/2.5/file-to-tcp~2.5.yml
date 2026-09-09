@@ -1,0 +1,740 @@
+shared:
+  templates:
+    "[file-to-tcp~2.5]":
+      version: "2.5"
+      minimumCompatibilityVersion: 3.1.0
+      description: "The file-to-tcp template provides functionality to read a files contents and forward it on to a TCP listener, via an integration-hub pipeline."
+      placeholders:
+        "fileName":
+          description: "The file name / regex expression that you want to read from"
+          required: true
+          defaultValue: ""
+          type: "string"
+        "directory":
+          description: "The directory that you want to read from"
+          required: true
+          defaultValue: ""
+          type: "string"
+        "checkpointDirectory":
+          description: "The directory where the checkpoint files will be stored"
+          required: false
+          defaultValue: "/opt/ISS/integration-hub/config"
+          type: "string"
+        "charset":
+          description: "This option is used to specify the encoding of the file."
+          required: false
+          defaultValue: "utf-8"
+          type: "string"
+        "pollTimeout":
+          description: "This option is used to specify the polling timeout."
+          required: false
+          defaultValue: "1000"
+          type: "integer"
+        "includeHeaders":
+          description: "This option is used to toggle between including/excluding headers in the processed message"
+          bind-to-exchange: true
+          required: false
+          defaultValue: true
+          type: "boolean"
+        "destinationServers":
+          description: "List of servers to send the pipeline output to"
+          bind-to-exchange: true
+          required: true
+          type: "array"
+        "logProcessed":
+          description: "To log the data once processed into its final form, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logSuccess":
+          description: "To log messages that were successfully sent to the tcp destination, set this to true. The success file is logs/<pipeline name>-<yyyymmdd>.success"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logReceived":
+          description: "To log all received data, set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed data, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logDropped":
+          description: "To log all dropped data, set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "allowList":
+          description: "List of logic statements to determine if the processing can proceed"
+          bind-to-exchange: true
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+        "denyList":
+          description: "List of logic statements to determine if the processing can proceed"
+          bind-to-exchange: true
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+        "allowListPreset":
+          bind-to-exchange: true
+          description: "Preset name for allow list"
+          required: false
+          defaultValue: ""
+          type: "string"
+        "denyListPreset":
+          bind-to-exchange: true
+          description: "Preset name for deny list"
+          required: false
+          defaultValue: ""
+          type: "string"
+        "uiMessageLimit":
+          description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
+          required: false
+          defaultValue: "200"
+          type: "integer"
+        "filters":
+          bind-to-exchange: true
+          description: "List of filters to match and format the data"
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+        "fieldLimit":
+          description: "The maximum number of characters allowed in each field of the incoming message"
+          required: false
+          defaultValue: 256
+          type: "integer"
+        "messageLimit":
+          description: "The maximum number of characters allowed in the message after it has been formatted"
+          required: false
+          defaultValue: 4096
+          type: "integer"
+        "newlinePlaceholder":
+          description: "String to replace newline characters values with"
+          required: false
+          defaultValue: " "
+          type: "string"
+        "blankPlaceholder":
+          description: "String to replace blank values with"
+          required: false
+          defaultValue: "N/A"
+          type: "string"
+
+      uiSchema:
+        type: object
+        properties:
+          fileHeader:
+            type: header
+            title: File Configuration
+          fileGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              fileConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  fileConfigTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: File Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### File Properties
+
+                              The following properties can be specified for this consumer.
+
+                              | property | description |
+                              | -- | -- |
+                              | directory | The directory name the files are stored in |
+                              | fileName | The regex expression of the file you want to read from |
+                              | charset | This option is used to specify the encoding of the file |
+                  fileConfigValue:
+                    type: object
+                    properties:
+                      fileConfigGrid:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - auto
+                            - auto
+                            - auto
+                        properties:
+                          directory:
+                            type: string
+                            title: Directory
+                            validation:
+                              required: true
+                              message: Please enter a directory
+                          fileName:
+                            type: string
+                            title: File Name
+                          charset:
+                            type: string
+                            title: charset
+                            defaultValue: "utf-8"
+                          checkpointDirectory:
+                            type: string
+                            title: Checkpoint Directory
+                            defaultValue: "/opt/ISS/integration-hub/config"
+          destinationSection:
+            type: object
+            properties:
+              destinationHeader:
+                type: header
+                title: Destination Configuration
+              destinationContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  commandConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: center
+                    properties:
+                      destinationTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: Destination Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            ui:
+                              icon: info-circle
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### Destination Properties
+
+                                  The following properties can be specified for the destination.
+
+                                  | property | description |
+                                  | -- | -- |
+                                  | Destination | Defines the output targets for this pipeline, specifying where the output will be directed |
+                      destinationValue:
+                        type: object
+                        properties:
+                          destinationGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                            properties:
+                              destinationServers:
+                                type: outputtarget
+                                title: Destination
+          optionalSettings:
+            type: expansion-panel
+            title: Optional Settings
+            ui:
+              elevation: 2
+            properties:
+              includeHeaders:
+                type: switch
+                title: Include Headers in Processed Message
+              toggleAllowDenyList:
+                type: switch
+                title: Configure Allow/Deny List
+                defaultValue: false
+              conditional-section-allow-deny:
+                type: conditional
+                expression:
+                  left: $toggleAllowDenyList
+                  operator: '=='
+                  right: true
+                properties:
+                  allowListPreset:
+                    type: allowdenylist
+                    title: Allow List Preset
+                    defaultValue: "NOT_SET"
+                    usePresets: true
+                    presetsOnly: true
+                    emitNotSetWhenEmpty: true
+                  allowList:
+                    type: allowdenylist
+                    title: Allow List Expressions
+                    defaultValue: "NOT_SET"
+                    usePresets: false
+                    emitNotSetWhenEmpty: true
+                  denyListPreset:
+                    type: allowdenylist
+                    title: Deny List Preset
+                    defaultValue: "NOT_SET"
+                    usePresets: true
+                    presetsOnly: true
+                    emitNotSetWhenEmpty: true
+                  denyList:
+                    type: allowdenylist
+                    title: Deny List Expressions
+                    defaultValue: "NOT_SET"
+                    usePresets: false
+                    emitNotSetWhenEmpty: true
+              toggleFilter:
+                type: switch
+                title: Configure Filters
+                defaultValue: false
+              conditional-section-filters:
+                type: conditional
+                expression:
+                  left: $toggleFilter
+                  operator: '=='
+                  right: true
+                properties:
+                  placeholders:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      newlinePlaceholder:
+                        type: string
+                        title: Newline Placeholder
+                        description: >-
+                          Replace newline characters with this value, defaults to a
+                          single space
+                      blankPlaceholder:
+                        type: string
+                        title: Blank Placeholder
+                        description: Replace blank keys with this value, defaults to a 'N/A'
+                      includeHeaders:
+                        type: switch
+                        title: Include Headers in Message
+                        defaultValue: false
+                  filters:
+                    type: filterselection
+                    title: filter and format messages
+                    defaultValue: "NOT_SET"
+                    emitNotSetWhenEmpty: true
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: '=='
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of failed/dropped/success/processed/received messages to
+                      display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: true
+                        type: checkbox
+                        title: log messages received
+                      logDropped:
+                        defaultValue: true
+                        type: checkbox
+                        title: log dropped messages
+                      logProcessed:
+                        type: checkbox
+                        title: log processed messages
+                        defaultValue: true
+                      logSuccess:
+                        defaultValue: true
+                        type: checkbox
+                        title: log success messages
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed messages
+
+      pipelineFlow:
+        - type: block
+          label: File
+          icon: file
+        - type: arrow
+          forward: true
+          pullForward: true
+        - type: pipe
+          children:
+            - type: arrow
+              forward: true
+              pullForward: true
+            - type: block
+              label: drop
+              icon: trash-can
+            - type: arrow
+              forward: true
+            - type: block
+              label: transform
+              icon: shuffle
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          label: "Forward to TCP Socket(s)"
+          icon: arrow-down-to-square
+
+      exceptions:
+        - catches:
+            - "java.net.ConnectException"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: ERROR
+              message: "Failed to send the body: ${exception.stacktrace}"
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[logFailed]} != null && ${exchangeProperty.placeholders[logFailed]} == true"
+                  steps:
+                    - method: isslog
+                      message: "correlationId=${headers.correlationId} | failed | [destination=${exchangeProperty.destinationHost}, message=${exchange.properties['internalProcessedMessage']}]"
+                      type: failed
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logFailed]]
+                      writeToDatabase: $[[logFailed]]
+            - method: stop
+
+      steps:
+        - method: from
+          component: filereader
+          properties:
+            directory: "$[[directory]]"
+            fileName: "$[[fileName]]"
+            encoding: "$[[charset]]"
+            pollTimeout: "$[[pollTimeout]]"
+            pipelineName: "$[[pipeline.id]]"
+            checkpointDirectory: "$[[checkpointDirectory]]"
+
+        - method: setHeader
+          key: correlationId
+          value:
+            type: simple
+            expression: "${exchangeId}"
+
+        - method: split
+          resolve-maps-as-key-value: false
+          expressions:
+            - type: tokenize
+              expression: "\\n"
+          steps:
+            - method: setProperty
+              key: internalOrigMsg
+              value:
+                type: "simple"
+                expression: "${body}"
+
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[logReceived]} != null && ${exchangeProperty.placeholders[logReceived]} == true"
+                  steps:
+                    - method: isslog
+                      message: "correlationId=${headers.correlationId} | received | ${bodyAs(String)}"
+                      type: received
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logReceived]]
+                      writeToDatabase: $[[logReceived]]
+
+            # REF- - Handle allow list
+            - method: choice
+              when:
+                - predicate:
+                    type: groovy
+                    expression: |
+                      def ph = exchange.properties.get("placeholders") ?: [:]
+
+                      def preset = (ph.get("allowListPreset") ?: "").toString().trim()
+                      def list = ph.get("allowList")
+
+                      def hasPreset =
+                        preset &&
+                        !preset.equalsIgnoreCase("NOT_SET")
+
+                      def hasList =
+                        (list instanceof List) &&
+                        !list.isEmpty()
+
+                      return hasPreset || hasList
+                  steps:
+                    # Handle Allow List
+                    - method: allowDenyFilter
+                      mode: allow
+                      # Use the processor's dynamic path
+                      allowDenyListPresetRef: ${exchangeProperty.placeholders[allowListPreset]}
+                      expressionsRef: ${exchangeProperty.placeholders[allowList]}
+                      allowSteps:
+                        - method: log
+                          level: WARN
+                          message: "Message allowed. Matched expression: ${header[ISS_FILTER_MATCH_EXPRESSION]}"
+                      denySteps:
+                        - method: setHeader
+                          key: ISS_FILTER_MATCH_EXPRESSION_LOG
+                          value:
+                            type: groovy
+                            expression: |
+                              def v = exchange.in.headers.get("ISS_FILTER_MATCH_EXPRESSION")
+                              def s = v == null ? "" : v.toString().trim()
+                              return s ? s : "NO_ALLOW_EXPRESSION_MATCHED"
+                        - method: log
+                          level: "WARN"
+                          message: "Message not allowed by allowList. Matched expression: ${header.ISS_FILTER_MATCH_EXPRESSION_LOG}"
+                        - method: isslog
+                          message: "dropped (Allow List) | matchedExpr=${header.ISS_FILTER_MATCH_EXPRESSION_LOG} | ${bodyAs(String)}"
+                          type: dropped
+                          writeToFile: $[[logDropped]]
+                          writeToDatabase: $[[logDropped]]
+                          queueSize: $[[uiMessageLimit]]
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: '{ "status": "dropped", "requestId": "${exchangeId}", "matchedExpression": "${header.ISS_FILTER_MATCH_EXPRESSION}"}'
+                        - method: stop
+              otherwise:
+                - method: log
+                  level: "DEBUG"
+                  message: "No allowList definitions"
+
+            # REF- - Handle deny list
+            - method: choice
+              when:
+                - predicate:
+                    type: groovy
+                    expression: |
+                      def ph = exchange.properties.get("placeholders") ?: [:]
+
+                      def preset = (ph.get("denyListPreset") ?: "").toString().trim()
+                      def list = ph.get("denyList")
+
+                      def hasPreset =
+                        preset &&
+                        !preset.equalsIgnoreCase("NOT_SET")
+
+                      def hasList =
+                        (list instanceof List) &&
+                        !list.isEmpty()
+
+                      return hasPreset || hasList
+                  steps:
+                    - method: allowDenyFilter
+                      mode: deny
+                      allowDenyListPresetRef: ${exchangeProperty.placeholders[denyListPreset]}
+                      expressionsRef: ${exchangeProperty.placeholders[denyList]}
+                      allowSteps:
+                        - method: log
+                          level: WARN
+                          message: "Message is allowed"
+                      denySteps:
+                        - method: setHeader
+                          key: ISS_FILTER_MATCH_EXPRESSION_LOG
+                          value:
+                            type: groovy
+                            expression: |
+                              def v = exchange.in.headers.get("ISS_FILTER_MATCH_EXPRESSION")
+                              def s = v == null ? "" : v.toString().trim()
+                              return s ? s : "NO_DENY_EXPRESSION_MATCHED"
+                        - method: log
+                          level: "WARN"
+                          message: "Message blocked by denyList. Matched expression: ${header.ISS_FILTER_MATCH_EXPRESSION_LOG}"
+                        - method: isslog
+                          message: "dropped (Deny List) | matchedExpr=${header.ISS_FILTER_MATCH_EXPRESSION_LOG} | ${bodyAs(String)}"
+                          type: dropped
+                          writeToFile: $[[logDropped]]
+                          writeToDatabase: $[[logDropped]]
+                          queueSize: $[[uiMessageLimit]]
+                        - method: setBody
+                          expression:
+                            type: simple
+                            expression: '{ "status": "dropped", "requestId": "${exchangeId}", "matchedExpression": "${header.ISS_FILTER_MATCH_EXPRESSION}"}'
+                        - method: stop
+              otherwise:
+                - method: log
+                  level: "DEBUG"
+                  message: "No denyList definitions"
+
+            - method: setBody
+              expression:
+                type: simple
+                expression: "${exchangeProperty.internalOrigMsg}"
+
+
+            # REF-IS2 - If the message matches a template key
+            - method: filterSelection
+              filtersRef: ${exchangeProperty.placeholders[filters]}
+
+            # REF- - Debug message
+            - method: log
+              level: "WARN"
+              message: "body '${body}' has matched template statement '${exchangeProperty.filterExpression}'"
+            # REF-8R9 - Set property "internalMatchFound" to true
+            - method: setProperty
+              key: internalMatchFound
+              value:
+                type: "constant"
+                expression: true
+
+            - method: log
+              level: WARN
+              message: "Performing alert format"
+
+            - method: alertFormat
+              template: ${exchangeProperty.filterFormat}
+              blankPlaceholder: "$[[blankPlaceholder]]"
+              newlinePlaceholder: "$[[newlinePlaceholder]]"
+              fieldLimit: $[[fieldLimit]]
+              messageLimit: $[[messageLimit]]
+              includeHeaders: $[[includeHeaders]]
+
+            - method: log
+              level: WARN
+              message: "Alert format complete - ${body}"
+
+            # REF-OHH - Set property "internalProcessedMessage" to body
+            - method: setProperty
+              key: internalProcessedMessage
+              value:
+                type: "simple"
+                expression: "${body}"
+            # REF- - Debug message
+            - method: log
+              level: "DEBUG"
+              message: "writing to processed file"
+            # REF-4MH - Log message to file
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | processed(${exchange.properties['filterExpression']}) | ${bodyAs(String)}"
+              type: processed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logProcessed]]
+              writeToDatabase: $[[logProcessed]]
+
+            # Evaluate destination rules against the ORIGINAL message
+            - method: setBody
+              expression:
+                type: simple
+                expression: "${exchangeProperty.internalProcessedMessage}"
+
+            - method: log
+              level: WARN
+              message: "Checking filter destinations"
+
+            # If a destination rule matches, send to those destinations first
+            - method: choice
+              when:
+                - predicate:
+                    type: groovy
+                    expression: |
+                      destinations = exchange.properties.getOrDefault("filterDestinations", null)
+                      if (destinations == null || destinations.equals("NOT_SET")) {
+                        exchange.properties.put("sendToGlobal", true);
+                        return false;
+                      } else {
+                        tempDestinations = []
+
+                        for (value in destinations.values()) {
+                          exchange.properties.put("sendToGlobal", value.sendToGlobalDestination);
+                          def expression = value.expression ?: "default"
+
+                          if (expression != "default") {
+                            language = exchange.getContext().resolveLanguage("simple")
+                            simpleExpression = language.createPredicate(expression)
+
+                            matches = simpleExpression.matches(exchange)
+
+                            if (matches) {
+                              tempDestinations = value.destinationNames.values().toList()
+                              exchange.properties.put("filterDestinations", tempDestinations);
+                              return true;
+                            }
+                          } else {
+                            tempDestinations.addAll(value.destinationNames.values().toList())
+                          }
+                        }
+
+                        exchange.properties.put("filterDestinations", tempDestinations);
+                        return true;
+                      }
+                  steps:
+                    - method: log
+                      level: WARN
+                      message: "Matched filter destination"
+                    # Restore processed message for sending
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: ${exchange.properties[internalProcessedMessage]}
+
+                    - method: destination
+                      outputRefExpression: ${exchangeProperty.filterDestinations}
+
+            # Restore processed message (important if previous choice didn't run)
+            - method: setBody
+              expression:
+                type: simple
+                expression: ${exchange.properties[internalProcessedMessage]}
+
+            - method: choice
+              when:
+                - predicate:
+                    type: groovy
+                    expression: |
+                      sendToGlobal = exchange.properties.getOrDefault("sendToGlobal", "true")
+                      return sendToGlobal
+                  steps:
+                    - method: destination
+                      outputRefExpression: ${exchangeProperty.placeholders[destinationServers]}
