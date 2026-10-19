@@ -11,6 +11,7 @@ The `message-cache-consumer-to-tcp` template consumes messages from an ISS Messa
 | Version | Minimum Integration Hub version | Documentation |
 | ------- | ------------------------------- | ------------- |
 | `1.0`   | `2.4.0`                         | [Configuration and usage](1.0/) |
+| `1.1`   | `2.4.0`                         | [Configuration and usage](1.1/) |
 
 ## What the Template Does
 
