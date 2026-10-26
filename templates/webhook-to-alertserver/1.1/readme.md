@@ -354,3 +354,16 @@ You can control which messages are processed based on an [expression](#expressio
 | `uiMessageLimit`       | Specifies the maximum number of messages to store for this pipeline, the default is `200`                                                         |
 | `log<Type>ToDatahub`   | Each log type above has a matching option to also send its messages to Datahub                                                                    |
 | `logDatahubDataSource` | The Datahub data source used when any of the Datahub logging options are enabled                                                                  |
+| `logMessageFields`     | If enabled, every field of each decoded message is logged with the expression that references it (see [Debugging expressions](#debugging-expressions)) |
+
+#### Debugging expressions
+
+Filter and action expressions use Camel Simple syntax. To see how an incoming message has been decoded, enable `Log message fields` under `Configure Logging`. Each message is written to the received log and the application log as one line per field, in the form you can paste into an expression:
+
+```
+${body[closeAlert][alertId]} = 0000923529 (String)
+${body[closeAlert][operator]} = ppadmin (String)
+${body[items][0][severity]} = 1 (Integer)
+```
+
+The type in brackets shows how to compare the value, e.g. `${body[items][0][severity]} == 1` for an Integer or `${body[closeAlert][operator]} == 'ppadmin'` for a String. Field names are case sensitive. Turn the option off once your expressions work, as it logs the full message content.

@@ -226,6 +226,13 @@ shared:
           type: string
           defaultValue: ""
 
+        "logMessageFields":
+          description: "Log every field of the decoded message with the expression to reference it - for building filter and action expressions"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: false
+
         "uiMessageLimit":
           description: "Limit of failed/dropped/success/processed/received messages to display on the UI."
           required: false
@@ -1093,6 +1100,7 @@ shared:
                         - logSuccess logSuccessToDatahub
                         - logFailed logFailedToDatahub
                         - logDatahubDataSource logDatahubDataSource
+                        - logMessageFields logMessageFields
                       alignRow: baseline
                     properties:
                       logReceived:
@@ -1141,6 +1149,11 @@ shared:
                         description: "Only required if logging to Datahub is enabled for any message type"
                         ui:
                           datasourceType: rest
+                      logMessageFields:
+                        defaultValue: false
+                        type: switch
+                        title: Log message fields
+                        description: "Logs each field of the decoded message as the expression to use in filters and actions, e.g. ${body[closeAlert][alertId]} = 123 (String). Logged to the received log and the application log. Turn off once your expressions work."
 
       pipelineFlow:
         - type: block
@@ -1752,6 +1765,45 @@ shared:
             - type: simple
               expression: "${body}"
           steps:
+
+            # Log each decoded field as the expression that references it, to help build filter/action expressions
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.placeholders[logMessageFields]} == true"
+                  steps:
+                    - method: setProperty
+                      key: messageFields
+                      value:
+                        type: groovy
+                        expression: |
+                          def lines = []
+                          def walk
+                          walk = { node, path ->
+                            if (node instanceof Map) {
+                              if (node.isEmpty()) lines << path + ' = {} (empty map)'
+                              node.each { k, v -> walk(v, path + '[' + k + ']') }
+                            } else if (node instanceof List) {
+                              if (node.isEmpty()) lines << path + ' = [] (empty list)'
+                              node.eachWithIndex { v, i -> walk(v, path + '[' + i + ']') }
+                            } else {
+                              lines << '$' + '{' + path + '} = ' + node + ' (' + (node == null ? 'null' : node.getClass().getSimpleName()) + ')'
+                            }
+                          }
+                          walk(body, 'body')
+                          return lines.join('\n')
+                    - method: log
+                      level: "INFO"
+                      message: "Message fields (parentId=${exchangeProperty.parentId}):\n${exchangeProperty.messageFields}"
+                    - method: isslog
+                      message: "parentId=${exchange.properties[parentId]} | fields | ${exchangeProperty.messageFields}"
+                      type: received
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logReceived]]
+                      writeToDatabase: $[[logReceived]]
+                      writeToDatahub: $[[logReceivedToDatahub]]
+                      datahubDataSource: $[[logDatahubDataSource]]
 
             # REF- - Handle allow list
             - method: choice
