@@ -366,4 +366,4 @@ ${body[closeAlert][operator]} = ppadmin (String)
 ${body[items][0][severity]} = 1 (Integer)
 ```
 
-The type in brackets shows how to compare the value, e.g. `${body[items][0][severity]} == 1` for an Integer or `${body[closeAlert][operator]} == 'ppadmin'` for a String. Field names are case sensitive. Turn the option off once your expressions work, as it logs the full message content.
+The type in brackets shows how to compare the value, e.g. `${body[items][0][severity]} == 1` for an Integer or `${body[closeAlert][operator]} == 'ppadmin'` for a String. Field names are case sensitive. For XML, element attributes such as `xsi:type` are dropped and each element is reduced to its text, so `<alertId xsi:type="xsd:string">0031594762</alertId>` inside a SOAP envelope is referenced as `${body[Body][closeAlert][alertId]}`. Namespace prefixes (`SOAP-ENV:`, `piws:`) are not part of the field name. Turn the option off once your expressions work, as it logs the full message content.

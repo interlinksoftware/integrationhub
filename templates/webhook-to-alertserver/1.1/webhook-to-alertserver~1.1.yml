@@ -1661,6 +1661,25 @@ shared:
                   message: "decoding from xml"
                 - method: unmarshal
                   type: xml
+                # Elements with attributes (e.g. SOAP xsi:type) unmarshal to {attr=..., ''=text}.
+                # Collapse them to their text so expressions can use ${body[Body][closeAlert][alertId]}.
+                # ponytail: the element's attributes are dropped - keep them if a use case needs them
+                - method: setBody
+                  expression:
+                    type: groovy
+                    expression: |
+                      def collapse
+                      collapse = { node ->
+                        if (node instanceof Map) {
+                          if (node.containsKey('')) return collapse(node[''])
+                          def result = [:]
+                          node.each { k, v -> result[k] = collapse(v) }
+                          return result
+                        }
+                        if (node instanceof List) return node.collect { collapse(it) }
+                        return node
+                      }
+                      return collapse(body)
                 # Cache the unmarshalled body
                 - method: setProperty
                   key: unmarshalledBody
