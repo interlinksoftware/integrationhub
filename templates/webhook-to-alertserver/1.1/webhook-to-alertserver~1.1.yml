@@ -491,6 +491,9 @@ shared:
                                 title: Alert Lookup Datasource
                                 ui:
                                   dataSourceType: jdbc
+                                validation:
+                                  required: true
+                                  message: Please select the datasource for the besdb database
                               eventDaemonHost:
                                 type: string
                                 title: EventDaemon Hostname / IP Address
@@ -596,6 +599,9 @@ shared:
                                   expression:
                                     type: string
                                     title: Expression
+                                    validation:
+                                      required: true
+                                      message: Please enter an expression to match
                                     help:
                                       icon: info-circle
                                       content: >-
@@ -643,6 +649,9 @@ shared:
                                     type: string
                                     title: AlertId
                                     description: "Expression for the BES alert id, e.g. ${body[alertId]}"
+                                    validation:
+                                      required: true
+                                      message: Please enter an expression for the BES alert id
                                   processLastAlertOnly:
                                     type: checkbox
                                     title: Process Last Alert Only
