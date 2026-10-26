@@ -5,3 +5,10 @@ The webhook-to-alertserver template provides functionality to transfer, filter/t
 <p align="center">
 <img src="../../assets/images/webhook-to-alertserver/flow_webhook-to-alertserver.png" />
 </p>
+
+## Versions
+
+| Version | Minimum Integration Hub version | Documentation |
+| ------- | ------------------------------- | ------------- |
+| `1.0`   | `2.2.0`                         | [Configuration and usage](1.0/) |
+| `1.1`   | `3.2.0`                         | [Configuration and usage](1.1/) |

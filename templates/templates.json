@@ -331,6 +331,20 @@
                     "minimumCompatibilityVersion": "2.4.0"
                 }
             ]
+        },
+        {
+            "name": "webhook-to-alertserver",
+            "description": "The webhook-to-alertserver template provides functionality to transfer, filter/transform and send from webhook listener to alertserver, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "2.2.0"
+                },
+                {
+                    "name": "1.1",
+                    "minimumCompatibilityVersion": "3.2.0"
+                }
+            ]
         }
     ]
 }
