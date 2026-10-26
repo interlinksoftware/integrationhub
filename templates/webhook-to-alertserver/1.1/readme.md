@@ -93,7 +93,7 @@ The following properties can be specified for Alert Lookup.
 
 | Property                            | Description                                                      |
 | :---------------------------------- | :--------------------------------------------------------------- |
-| `Alert Lookup Datasource`           | The name of the datasource that will be used to lookup alerts<br /><br />_This datasource should be configured to use the **besdb** database. It is also used by the `updateDB` action_ |
+| `Alert Lookup Datasource`           | **Required.** The name of the datasource that will be used to lookup alerts<br /><br />_This datasource should be configured to use the **besdb** database. It is also used by the `updateDB` action_ |
 | `EventDaemon Hostname / IP Address` | The hostname / IP address of the system that is running Event Daemon |
 | `EventDaemon Port`                  | The port that the EventDaemon is listening on                    |
 
@@ -105,8 +105,8 @@ Filters are checked in order, and the first filter whose expression matches is u
 
 | Property                  | Description                                                      |
 | :------------------------ | :--------------------------------------------------------------- |
-| `Expression`              | The [expression](#expression-syntax) which determines the action to take based on the incoming message |
-| `AlertId`                 | An expression that resolves to the BES alert id from the incoming message, for example `${body[alertId]}` |
+| `Expression`              | **Required.** The [expression](#expression-syntax) which determines the action to take based on the incoming message |
+| `AlertId`                 | **Required.** An expression that resolves to the BES alert id from the incoming message, for example `${body[alertId]}` |
 | `Process Last Alert Only` | When enabled and the AlertId expression resolves to a list, only the last alert id is processed<br/><br/><blockquote><i>This feature is useful in cases where multiple objects share identical alert ids</i></blockquote> |
 
 <br />
