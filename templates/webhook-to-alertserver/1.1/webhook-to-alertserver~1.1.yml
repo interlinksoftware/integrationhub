@@ -557,7 +557,7 @@ shared:
                                   | action type | fields | description |
                                   | -- | -- | -- |
                                   | assignAlert | Operator | Assigns the alert to the BES operator. If the alert is assigned to another operator it is deassigned first |
-                                  | closeAlert | Operator, Close Type | Closes the alert on behalf of the BES operator. Close Type: 2 = operator, 3 = supervisor/remote, 4 = alert, 5 = timeout, 20 = inactive, 21 = correlation |
+                                  | closeAlert | Operator, Close Type (optional) | Closes the alert on behalf of the BES operator. Close Type defaults to 2 = operator, 3 = supervisor/remote, 4 = alert, 5 = timeout, 20 = inactive, 21 = correlation |
                                   | updateField | Field Name, Field Value | Sets a field on the alert to the given value |
                                   | addNote | Note | Adds a note to the alert |
                                   | updateDB | SQL Statement | Runs the SQL statement against the Alert Lookup Datasource. Fails if no rows are updated |
@@ -712,9 +712,9 @@ shared:
                                                 description: "BES operator closing the alert, e.g. ppadmin or ${body[user]}"
                                               closeType:
                                                 type: string
-                                                title: Close Type
+                                                title: Close Type (optional)
                                                 defaultValue: "2"
-                                                description: "2 = operator, 3 = supervisor/remote, 4 = alert, 5 = timeout, 20 = inactive, 21 = correlation"
+                                                description: "Leave as 2 (operator) unless needed. 3 = supervisor/remote, 4 = alert, 5 = timeout, 20 = inactive, 21 = correlation"
                                       conditional-section-updateField:
                                         type: conditional
                                         expression:

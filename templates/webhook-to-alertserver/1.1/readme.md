@@ -21,7 +21,7 @@ Each incoming request is matched against your filters. When a filter matches, th
 - New action types: `updateField`, `updateDB` and `runCommand`.
 - `assignAlert` deassigns an alert that is assigned to another operator before reassigning it.
 - Throttling is enabled by default, and the `Enable Throttling` switch now works as labelled.
-- `Close Type` is documented and defaults to `2` (closed by operator).
+- `Close Type` is optional and defaults to `2` (closed by operator).
 - Field help and examples throughout the configuration screen.
 - The response returns the result of each action, see [Response](#response).
 - Each log type can also be sent to Datahub.
@@ -118,7 +118,7 @@ Each filter can run one or more actions. Every action field accepts an [expressi
 | Action Type   | Fields                                   | Description                                                      |
 | :------------ | :--------------------------------------- | :--------------------------------------------------------------- |
 | `assignAlert` | `Operator`                               | Assigns the alert to the BES operator. If the alert is assigned to another operator it is deassigned first. If it is already assigned to this operator, nothing is sent and the action is reported as `DROPPED` with status `409` |
-| `closeAlert`  | `Operator`, `Close Type`                 | Closes the alert on behalf of the BES operator, using the given [close type](#close-types) (default `2`) |
+| `closeAlert`  | `Operator`, `Close Type` (optional)      | Closes the alert on behalf of the BES operator. `Close Type` is optional and defaults to `2`, see [close types](#close-types) |
 | `updateField` | `Field Name`, `Field Value`              | Sets a field on the alert to the given value                     |
 | `addNote`     | `Note`                                   | Adds a note to the alert                                         |
 | `updateDB`    | `SQL Statement`                          | Runs the SQL statement against the Alert Lookup Datasource. The action fails if no rows are updated |
@@ -163,7 +163,6 @@ filters:
     actions:
       - actionType: closeAlert
         operator: ppadmin
-        closeType: 2
       - actionType: addNote
         note: Received request code ${body[actionCode]} - Alert has been closed by ppadmin
 ```
