@@ -227,7 +227,7 @@ shared:
           defaultValue: ""
 
         "logMessageFields":
-          description: "Log every field of the decoded message with the expression to reference it - for building filter and action expressions"
+          description: "Log every field of the decoded message with the expression to reference it - for building filter and action expressions. The log file is logs/<pipeline name>-<yyyymmdd>.log"
           bind-to-exchange: true
           required: false
           type: "boolean"
@@ -1153,7 +1153,7 @@ shared:
                         defaultValue: false
                         type: switch
                         title: Log message fields
-                        description: "Logs each field of the decoded message as the expression to use in filters and actions, e.g. ${body[closeAlert][alertId]} = 123 (String). Logged to the received log and the application log. Turn off once your expressions work."
+                        description: "Logs each field of the decoded message as the expression to use in filters and actions, e.g. ${body[closeAlert][alertId]} = 123 (String). Written to logs/<pipeline name>-<yyyymmdd>.log. Turn off once your expressions work."
 
       pipelineFlow:
         - type: block
@@ -1815,14 +1815,14 @@ shared:
                     - method: log
                       level: "INFO"
                       message: "Message fields (parentId=${exchangeProperty.parentId}):\n${exchangeProperty.messageFields}"
+                    # Written to logs/<pipeline>-<yyyymmdd>.log only - not the UI message list or Datahub
                     - method: isslog
                       message: "parentId=${exchange.properties[parentId]} | fields | ${exchangeProperty.messageFields}"
-                      type: received
+                      type: log
                       queueSize: $[[uiMessageLimit]]
-                      writeToFile: $[[logReceived]]
-                      writeToDatabase: $[[logReceived]]
-                      writeToDatahub: $[[logReceivedToDatahub]]
-                      datahubDataSource: $[[logDatahubDataSource]]
+                      writeToFile: true
+                      writeToDatabase: false
+                      writeToDatahub: false
 
             # REF- - Handle allow list
             - method: choice
