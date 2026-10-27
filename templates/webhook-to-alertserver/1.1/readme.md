@@ -358,7 +358,7 @@ You can control which messages are processed based on an [expression](#expressio
 
 #### Debugging expressions
 
-Filter and action expressions use Camel Simple syntax. To see how an incoming message has been decoded, enable `Log message fields` under `Configure Logging`. Each message is written to `logs/<pipeline name>-<yyyymmdd>.log` (and the application log) as one line per field, in the form you can paste into an expression:
+Filter and action expressions use Camel Simple syntax. To see how an incoming message has been decoded, enable `Log message fields` under `Configure Logging`. Each message is written to the pipeline log, `logs/<pipeline name>.log`, as one line per field, in the form you can paste into an expression:
 
 ```
 ${body[closeAlert][alertId]} = 0000923529 (String)
