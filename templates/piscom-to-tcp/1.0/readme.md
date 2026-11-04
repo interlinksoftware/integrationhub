@@ -11,7 +11,7 @@
 
 ## Overview
 
-The piscom-to-tcp template connects to one or more SCOM (iiSCOM2007) hosts over TCP and receives their alert events. The integration-hub pipeline filters and transforms each event, then sends it to the target TCP listener.
+The piscom-to-tcp template connects to one or more SCOM (iiSCOM) hosts over TCP and receives their alert events. The integration-hub pipeline filters and transforms each event, then sends it to the target TCP listener.
 
 When several SCOM hosts are configured, the pipeline connects to all of them. The first live connection becomes the master; the others stay connected as backups. If the master connection drops, a live backup takes over.
 
