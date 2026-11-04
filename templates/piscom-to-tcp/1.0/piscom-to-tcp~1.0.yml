@@ -3,7 +3,7 @@ shared:
     "[piscom-to-tcp~1.0]":
       version: "1.0"
       minimumCompatibilityVersion: 3.2.0
-      description: "The piscom-to-tcp template provides functionality to transfer, filter/transform and send data ingested from a SCOM connector to various Output Targets, via an integration-hub pipeline."
+      description: "The piscom-to-tcp template provides functionality to transfer, filter/transform and send data ingested from a SCOM connector to a TCP listener, via an integration-hub pipeline."
       placeholders:
         "hosts":
           description: "List of SCOM hosts to ingest data from"

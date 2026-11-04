@@ -11,7 +11,7 @@
 
 ## Overview
 
-The piscom-to-tcp template connects to one or more SCOM (iiSCOM2007) hosts over TCP and receives their alert events. The integration-hub pipeline filters and transforms each event, then sends it to one or more Output Targets.
+The piscom-to-tcp template connects to one or more SCOM (iiSCOM2007) hosts over TCP and receives their alert events. The integration-hub pipeline filters and transforms each event, then sends it to the target TCP listener.
 
 When several SCOM hosts are configured, the pipeline connects to all of them. The first live connection becomes the master; the others stay connected as backups. If the master connection drops, a live backup takes over.
 
@@ -77,7 +77,7 @@ You can choose which SCOM events are processed and sent by configuring the Allow
 
 #### Filters
 
-The filter and formatting logic lets you customise how events appear when they are sent to the Output Targets. Filters can also send matching events to their own Output Targets.
+The filter and formatting logic lets you customise how events appear when they are sent to the TCP listener. Filters can also send matching events to their own Output Targets.
 
 <img src="../../../assets/images/filters.jpg" width="600" />
 

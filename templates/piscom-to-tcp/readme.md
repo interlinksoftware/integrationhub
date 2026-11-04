@@ -1,6 +1,6 @@
 # piscom-to-tcp Template
 
-The piscom-to-tcp template connects to one or more SCOM (iiSCOM2007) hosts, receives their alert events, filters and transforms them, and sends the result to one or more Output Targets, via an integration-hub pipeline.
+The piscom-to-tcp template connects to one or more SCOM (iiSCOM2007) hosts, receives their alert events, filters and transforms them, and sends the result to a TCP listener, via an integration-hub pipeline.
 
 ## Versions
 
