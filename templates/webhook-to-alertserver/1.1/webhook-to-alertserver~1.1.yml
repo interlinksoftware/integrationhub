@@ -1430,6 +1430,11 @@ shared:
                   count: $[[throttleCount]]
                   period: $[[throttlePeriod]]
                   rejectExecution: true
+                # Must follow the throttle: the choice step only closes itself properly when its last step is not a
+                # container like throttle - otherwise every later step is nested in this branch and skipped when disabled
+                - method: log
+                  level: "DEBUG"
+                  message: "Request within throttle limit"
 
         # REF- -  Api key check
         - method: choice
