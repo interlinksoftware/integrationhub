@@ -1330,7 +1330,7 @@ shared:
             - method: setBody
               expression:
                 type: simple
-                expression: '{"status": 500, "action": "FAILED", "requestId": "${exchange.properties[parentId]}", "message": "Failed to send to AlertServer $[[alertServerHost]]:$[[alertServerPort]]"}'
+                expression: '{"status": 500, "action": "FAILED", "requestId": "${exchange.properties[parentId]}", "message": "Failed to send to AlertServer, please check the logs for more details"}'
             - method: stop
 
         - catches:
