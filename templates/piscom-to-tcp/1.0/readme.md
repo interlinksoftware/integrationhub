@@ -3,7 +3,7 @@
 </p>
 <br><br>
 
-# SCOM to Output Targets (piscom-to-tcp v1.0)
+# SCOM to TCP Listener (piscom-to-tcp v1.0)
 
 **Important:** _These instructions assume you have Integration Hub v3.2+ installed_
 
