@@ -1321,6 +1321,16 @@ shared:
               writeToDatabase: $[[logFailed]]
               writeToDatahub: $[[logFailedToDatahub]]
               datahubDataSource: $[[logDatahubDataSource]]
+            # Set the error response returned to the caller
+            - method: setHeader
+              key: CamelHttpResponseCode
+              value:
+                type: constant
+                expression: 500
+            - method: setBody
+              expression:
+                type: simple
+                expression: '{"status": 500, "action": "FAILED", "requestId": "${exchange.properties[parentId]}", "message": "Failed to send to AlertServer $[[alertServerHost]]:$[[alertServerPort]]"}'
             - method: stop
 
         - catches:
@@ -3359,10 +3369,58 @@ shared:
                   level: DEBUG
                   message: "Final action response to be sent back to the caller: ${bodyAs(String)}"
           otherwise:
-            - method: log
-              level: DEBUG
-              message: "No split aggregation result was generated from processing the message. Returning a successful response by default -- ${exchangeProperty.AggregationResult}"
-            - method: setBody
-              expression:
-                type: simple
-                expression: '{"status": 200, "action": "SUCCESS", "requestId": "${exchange.properties[parentId]}", "message": "Successfully processed the message", "alertId": "${exchange.properties[alertId]}"}'
+            # No actions ran. An item that was dropped or failed (allow/deny list, no matching filter, alert not found
+            # or closed, AlertServer unreachable) leaves its JSON status body - return the last one to the caller
+            - method: setProperty
+              key: itemResponse
+              value:
+                type: groovy
+                expression: |
+                  import groovy.json.JsonSlurper
+
+                  def results = exchange.properties.get('AggregationResult')
+                  if (!(results instanceof List)) {
+                    return null
+                  }
+                  for (result in results.reverse()) {
+                    def text = result?.body?.toString()?.trim()
+                    if (text?.startsWith('{')) {
+                      try {
+                        def parsed = new JsonSlurper().parseText(text)
+                        if (parsed instanceof Map && parsed.containsKey('status')) {
+                          return text
+                        }
+                      } catch (Exception ignored) {
+                      }
+                    }
+                  }
+                  return null
+            - method: choice
+              when:
+                - predicate:
+                    type: simple
+                    expression: "${exchangeProperty.itemResponse} != null"
+                  steps:
+                    - method: log
+                      level: DEBUG
+                      message: "No actions were run. Returning the item response -- ${exchangeProperty.itemResponse}"
+                    - method: setBody
+                      expression:
+                        type: simple
+                        expression: "${exchangeProperty.itemResponse}"
+                    # A numeric status (e.g. 400) is the HTTP code, a text status (e.g. dropped) is returned as 200
+                    - method: setHeader
+                      key: CamelHttpResponseCode
+                      value:
+                        type: groovy
+                        expression: |
+                          def status = new groovy.json.JsonSlurper().parseText(exchange.properties.get('itemResponse')).status
+                          return status instanceof Number ? status.intValue() : 200
+              otherwise:
+                - method: log
+                  level: DEBUG
+                  message: "No split aggregation result was generated from processing the message. Returning a successful response by default -- ${exchangeProperty.AggregationResult}"
+                - method: setBody
+                  expression:
+                    type: simple
+                    expression: '{"status": 200, "action": "SUCCESS", "requestId": "${exchange.properties[parentId]}", "message": "Successfully processed the message", "alertId": "${exchange.properties[alertId]}"}'
