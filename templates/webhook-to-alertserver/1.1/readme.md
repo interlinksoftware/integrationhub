@@ -204,7 +204,17 @@ When the actions have run, the caller receives a JSON response that summarises t
 | `successful`   | `0`          | `200`     | All actions completed           |
 | `unsuccessful` | `2`          | `500`     | One or more actions returned a status of `400` or above (including `409` for an alert already assigned to the operator) |
 
-Requests that are rejected before any action runs (incorrect API key, unknown content type, alert not found or closed, dropped by the allow/deny list) return an error body describing the reason.
+Requests that are rejected before any action runs return a body describing the reason:
+
+| Reason                                          | HTTP code | `status`    |
+| :---------------------------------------------- | :-------- | :---------- |
+| Missing or incorrect API key                    | `401`     | `401`       |
+| Invalid body or unknown content type            | `400`     | `ERROR`     |
+| Throttle limit reached                          | `400`     | `ERROR`     |
+| Dropped by the allow / deny list                | `200`     | `dropped`   |
+| No matching filter                              | `400`     | `400`       |
+| Alert not found or already closed               | `400`     | `400`       |
+| AlertServer unreachable                         | `500`     | `500`       |
 
 ### Optional Settings
 
