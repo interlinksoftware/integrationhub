@@ -11,7 +11,7 @@
 
 ## Overview
 
-The webhook-to-alertserver template provides functionality to transfer, filter/transform and send from webhook listener to alertserver, via an integration-hub pipeline.
+The webhook-to-alertserver template receives webhook requests (JSON, XML or YAML), filters them, looks up the referenced BES alert and runs actions against it via AlertServer - close, assign, update a field or add a note - plus optional SQL and command actions, via an integration-hub pipeline.
 
 Each incoming request is matched against your filters. When a filter matches, the pipeline looks up the referenced BES alert and runs the filter's actions against it (assign, close, update a field, add a note, run SQL or run a command). The response to the caller summarises the result of every action.
 
