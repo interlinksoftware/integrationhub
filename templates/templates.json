@@ -341,6 +341,16 @@
                     "minimumCompatibilityVersion": "3.2.0"
                 }
             ]
+        },
+        {
+            "name": "workfiles-to-piscom",
+            "description": "The workfiles-to-piscom template provides functionality to read BES alert work files, filter the events and send them to iiSCOM over the shared SCOM connection, via an integration-hub pipeline.",
+            "versions": [
+                {
+                    "name": "1.0",
+                    "minimumCompatibilityVersion": "3.2.0"
+                }
+            ]
         }
     ]
 }
