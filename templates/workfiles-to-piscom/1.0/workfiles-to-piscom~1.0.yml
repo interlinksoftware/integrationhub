@@ -1,0 +1,717 @@
+shared:
+  templates:
+    "[workfiles-to-piscom~1.0]":
+      version: "1.0"
+      minimumCompatibilityVersion: 3.2.0
+      description: "The workfiles-to-piscom template watches BES's rotating alert work-files directory (the flat-file feed BES's own besType-35 mechanism writes to, e.g. /opt/ISS/logs/bes/work/<mcname>), relays each event line through an allow/deny regex filter and a tag-list filter, and sends matching events onward to iiSCOM2007 over the shared piscom TCP connection. Deploy alongside (not instead of) piscom-to-tcp - both pipelines must share the same piscom `hosts` configuration so they resolve to the same underlying connection."
+      placeholders:
+        # Work files connector placeholders
+        "workDirectory":
+          description: "Directory to watch for BES work files (e.g: /opt/ISS/logs/bes/work/<mcname>). Files are named by epoch timestamp and rotate every ~2000 lines; each new file is picked up automatically"
+          required: false
+          type: "string"
+          defaultValue: "/opt/ISS/logs/bes/work/Integrations"
+        "checkpointDirectory":
+          description: "Directory to store the single read-position checkpoint in. Must be writable and should survive service restarts - the default (/tmp) may not on every OS/config, override it for production"
+          required: false
+          type: "string"
+          defaultValue: "/tmp"
+        "pollTimeout":
+          description: "How often, in milliseconds, the file watcher checks for changes. Default is 1000"
+          required: false
+          type: "integer"
+          defaultValue: 1000
+        "pipelineName":
+          description: "Names this pipeline's checkpoint file (<pipelineName>.cpf) so multiple pipelines watching the same directory don't collide"
+          required: false
+          type: "string"
+          defaultValue: "workfiles-to-piscom"
+        "maxBackfillMinutes":
+          description: "Only used to pick the starting file on first start (no checkpoint yet): candidate files older than this are excluded. 1440 (default, 1 day) means the oldest file within the last day becomes the start point. 0 means no cutoff - the oldest file present is used. Irrelevant once a checkpoint exists"
+          required: false
+          type: "integer"
+          defaultValue: 1440
+        "maxBackfillFiles":
+          description: "Also only for picking the starting file on first start: narrows candidates to the newest N, then starts from the oldest of those - roughly 'start N segments back'. 0 (default) means no cap"
+          required: false
+          type: "integer"
+          defaultValue: 0
+
+        # Allow/deny list placeholders (reuses the platform's allowDenyFilter step, same
+        # mechanism file-to-tcp.yml uses)
+        "allowList":
+          description: "List of logic statements to determine if the event can proceed"
+          bind-to-exchange: true
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+        "denyList":
+          description: "List of logic statements to determine if the event can proceed"
+          bind-to-exchange: true
+          required: false
+          defaultValue: "NOT_SET"
+          type: "array"
+        "allowListPreset":
+          bind-to-exchange: true
+          description: "Preset name for allow list"
+          required: false
+          defaultValue: ""
+          type: "string"
+        "denyListPreset":
+          bind-to-exchange: true
+          description: "Preset name for deny list"
+          required: false
+          defaultValue: ""
+          type: "string"
+
+        # Tag list placeholder - simple convenience filter, evaluated after allow/deny
+        "allowedTags":
+          description: "List of event types to forward (e.g: C, A, AN, P, R, UF). An event is forwarded if it contains any of these tags, dropped otherwise. Left unset, this filter is skipped and every event passes through - rely on the allow/deny list instead if you want that"
+          bind-to-exchange: true
+          required: false
+          type: "array"
+          defaultValue: "C,AN,A,UF"
+
+        # SCOM connection placeholders - must match the piscom-to-tcp pipeline's values
+        # exactly so both pipelines' piscom: endpoints resolve to the same shared connection.
+        "hosts":
+          description: "List of SCOM hosts to connect to. Must match the piscom-to-tcp pipeline's 'hosts' value exactly"
+          required: true
+          bind-to-exchange: true
+          type: "array"
+        "timeout":
+          description: "Socket read timeout in seconds. Default is 30 seconds"
+          required: false
+          type: "integer"
+          defaultValue: 30
+        "connectTimeout":
+          description: "TCP connect timeout in seconds, bounding how long a connection attempt to a host may take before failing. Default is 10 seconds"
+          required: false
+          type: "integer"
+          defaultValue: 10
+        "heartbeatInterval":
+          description: "Interval in seconds between heartbeat pings (default is 5)"
+          required: false
+          type: "integer"
+          defaultValue: 5
+        "commandTimeout":
+          description: "How long, in seconds, to wait for iiSCOM2007's correlated reply before failing. Default is 15 seconds"
+          required: false
+          type: "integer"
+          defaultValue: 15
+
+        # Logging placeholders (same conventions as alertserver-to-piscom/eventdaemon-to-piscom)
+        "logReceived":
+          description: "To log every event line received from the work files (whether or not it matched the allow/deny list or allowedTags), set this to true. The received file is logs/<pipeline name>-<yyyymmdd>.received"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: false
+        "logProcessed":
+          description: "To log events that passed allow/deny and the tag list, about to be relayed to iiSCOM2007, set this to true. The processed file is logs/<pipeline name>-<yyyymmdd>.processed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logDropped":
+          description: "To log events dropped by the allow/deny list or the tag list, set this to true. The dropped file is logs/<pipeline name>-<yyyymmdd>.dropped"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: false
+        "logSent":
+          description: "To log events successfully relayed to iiSCOM2007, set this to true. The sent file is logs/<pipeline name>-<yyyymmdd>.sent"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "logFailed":
+          description: "To log all failed relay attempts, set this to true. The failed file is logs/<pipeline name>-<yyyymmdd>.failed"
+          bind-to-exchange: true
+          required: false
+          type: "boolean"
+          defaultValue: true
+        "uiMessageLimit":
+          description: "Limit of received/processed/dropped/sent/failed messages to display on the UI."
+          required: false
+          defaultValue: "200"
+          type: "integer"
+
+      uiSchema:
+        type: object
+        properties:
+          listenerHeader:
+            type: header
+            title: Work Files Connector
+          listenerGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              listenerConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  listenerConfigTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: Connector Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### Work Files Connector Properties
+
+                              | property | description |
+                              | -- | -- |
+                              | Work Directory | The BES work-files directory to watch<br/><br/>(e.g: `/opt/ISS/logs/bes/work/<mcname>`) |
+                              | Event Types Allowed | Event types to relay to SCOM - every other event is still received and logged, just not sent on<br/><br/>(e.g: `C, A, AN, P, R, UF`) |
+
+                              ### Optional Settings
+
+                              Checkpoint directory, poll interval, pipeline name and max backfill
+                              already have working defaults - only change them if this deployment's
+                              work-files layout genuinely differs.
+                  listenerConfigValue:
+                    type: object
+                    properties:
+                      listenerConnection:
+                        type: grid
+                        ui:
+                          areas:
+                            - workDirectory workDirectory
+                            - allowedTags allowedTags
+                          columns:
+                            - auto
+                            - 1fr
+                          alignRow: baseline
+                        properties:
+                          workDirectory:
+                            type: string
+                            title: Work Directory
+                            defaultValue: "/opt/ISS/logs/bes/work/Integrations"
+                            description: "e.g: /opt/ISS/logs/bes/work/<mcname>"
+                          allowedTags:
+                            type: array
+                            title: Event Types Allowed
+                            defaultValue: ["C", "AN", "A"]
+                            ui:
+                              indexed: true
+                      optionalSettings:
+                        type: expansion-panel
+                        title: Optional Settings
+                        ui:
+                          elevation: 2
+                        properties:
+                          connectionGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                                - auto
+                                - auto
+                            properties:
+                              checkpointDirectory:
+                                type: string
+                                title: Checkpoint Directory
+                                defaultValue: "/tmp"
+                              pollTimeout:
+                                type: number
+                                title: Poll Timeout (ms)
+                                defaultValue: 1000
+                              pipelineName:
+                                type: string
+                                title: Pipeline Name
+                                defaultValue: "workfiles-to-piscom"
+                              maxBackfillMinutes:
+                                type: number
+                                title: Max Backfill (minutes)
+                                defaultValue: 1440
+                                description: Picks the starting file on first start only - excludes candidates older than this. 0 = no cutoff
+                              maxBackfillFiles:
+                                type: number
+                                title: Max Backfill (file count)
+                                defaultValue: 0
+                                description: Also for picking the starting file on first start - starts roughly N segments back. 0 = no cap
+          filterHeader:
+            type: header
+            title: Allow / Deny List
+          filterGroup:
+            type: object
+            ui:
+              component: group
+            properties:
+              filterConfig:
+                type: grid
+                ui:
+                  columns:
+                    - 25%
+                    - auto
+                  alignRow: baseline
+                properties:
+                  filterConfigTitle:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - 1fr
+                      areas:
+                        - description-text description-help
+                      alignRow: center
+                    properties:
+                      description-text:
+                        type: typography
+                        defaultValue: Filter Properties
+                        ui:
+                          indexed: true
+                      description-help:
+                        type: typography
+                        help:
+                          icon: info-circle
+                          content: |-
+                            ### Allow / Deny List
+
+                            Optional regex-based filtering, evaluated before the Event Types
+                            Allowed list above - reuses the same allow/deny mechanism as the
+                            file-to-tcp template. Leave off if the tag list alone is enough.
+                  filterConfigValue:
+                    type: object
+                    properties:
+                      toggleAllowDenyList:
+                        type: switch
+                        title: Configure Allow/Deny List
+                        defaultValue: false
+                      conditional-section-allow-deny:
+                        type: conditional
+                        expression:
+                          left: $toggleAllowDenyList
+                          operator: '=='
+                          right: true
+                        properties:
+                          allowListPreset:
+                            type: allowdenylist
+                            title: Allow List Preset
+                            defaultValue: "NOT_SET"
+                            usePresets: true
+                            presetsOnly: true
+                            emitNotSetWhenEmpty: true
+                          allowList:
+                            type: allowdenylist
+                            title: Allow List Expressions
+                            defaultValue: "NOT_SET"
+                            usePresets: false
+                            emitNotSetWhenEmpty: true
+                          denyListPreset:
+                            type: allowdenylist
+                            title: Deny List Preset
+                            defaultValue: "NOT_SET"
+                            usePresets: true
+                            presetsOnly: true
+                            emitNotSetWhenEmpty: true
+                          denyList:
+                            type: allowdenylist
+                            title: Deny List Expressions
+                            defaultValue: "NOT_SET"
+                            usePresets: false
+                            emitNotSetWhenEmpty: true
+          destinationSection:
+            type: object
+            properties:
+              destinationHeader:
+                type: header
+                title: SCOM Connection
+              destinationContainer:
+                type: object
+                ui:
+                  component: group
+                properties:
+                  commandConfig:
+                    type: grid
+                    ui:
+                      columns:
+                        - 25%
+                        - auto
+                      alignRow: center
+                    properties:
+                      destinationTitle:
+                        type: grid
+                        ui:
+                          columns:
+                            - auto
+                            - 1fr
+                          areas:
+                            - description-text description-help
+                          alignRow: center
+                        properties:
+                          description-text:
+                            type: typography
+                            defaultValue: SCOM Connection Properties
+                            ui:
+                              indexed: true
+                          description-help:
+                            type: typography
+                            help:
+                              icon: info-circle
+                              content: |-
+                                ### SCOM Connection Properties
+
+                                  These values must match the piscom-to-tcp pipeline's SCOM Connector
+                                  properties exactly - both pipelines' piscom: endpoints must resolve
+                                  to the same shared connection group for events to reach a live
+                                  master connection.
+                      destinationValue:
+                        type: object
+                        properties:
+                          destinationGrid:
+                            type: grid
+                            ui:
+                              areas:
+                                - hosts hosts
+                              columns:
+                                - 100%
+                              alignRow: baseline
+                            properties:
+                              hosts:
+                                type: string
+                                title: SCOM Hosts
+                                description: Comma-separated host:port list (e.g. 10.5.0.24:24002,10.6.0.24:24002)
+                      optionalSettings:
+                        type: expansion-panel
+                        title: Optional Settings
+                        ui:
+                          elevation: 2
+                        properties:
+                          connectionGrid:
+                            type: grid
+                            ui:
+                              columns:
+                                - auto
+                                - auto
+                                - auto
+                            properties:
+                              timeout:
+                                type: number
+                                title: Timeout (s)
+                                defaultValue: 30
+                              connectTimeout:
+                                type: number
+                                title: Connect Timeout (s)
+                                defaultValue: 10
+                              heartbeatInterval:
+                                type: number
+                                title: Heartbeat Interval (s)
+                                defaultValue: 5
+                              commandTimeout:
+                                type: number
+                                title: Command Timeout (s)
+                                defaultValue: 15
+          optionalSettings:
+            type: expansion-panel
+            title: Logging
+            ui:
+              elevation: 2
+            properties:
+              toggleLogs:
+                type: switch
+                title: Configure Logging
+                defaultValue: false
+              conditional-section-logs:
+                type: conditional
+                expression:
+                  left: $toggleLogs
+                  operator: '=='
+                  right: true
+                properties:
+                  uiMessageLimit:
+                    type: number
+                    title: UI Message Limit
+                    defaultValue: 200
+                    description: >-
+                      Limit of received/processed/dropped/sent/failed messages to display on the UI
+                  logOptions:
+                    type: grid
+                    ui:
+                      columns:
+                        - auto
+                        - auto
+                        - auto
+                      alignRow: baseline
+                    properties:
+                      logReceived:
+                        defaultValue: false
+                        type: checkbox
+                        title: log every event received
+                      logProcessed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log events that passed all filters
+                      logDropped:
+                        defaultValue: false
+                        type: checkbox
+                        title: log events dropped by allow/deny or tag list
+                      logSent:
+                        defaultValue: true
+                        type: checkbox
+                        title: log events sent to SCOM
+                      logFailed:
+                        defaultValue: true
+                        type: checkbox
+                        title: log failed relay attempts
+
+      pipelineFlow:
+        - type: block
+          label: Work Files
+          icon: folder-open
+        - type: pipe
+          children:
+            - type: arrow
+              forward: true
+              pullBackward: true
+            - type: arrow
+              forward: true
+              pullForward: true
+        - type: block
+          icon: arrow-down-to-square
+          label: "Send to SCOM (piscom)"
+
+      exceptions:
+        - catches:
+            - "java.lang.Exception"
+          handled:
+            type: constant
+            expression: true
+          steps:
+            - method: log
+              level: "ERROR"
+              message: "Error processing event: ${exception}"
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | failed() | backlogRemaining=${header.ISS_BESWORKFILE_BACKLOG_REMAINING} | Exception=${exception.message} | ${bodyAs(String)}"
+              type: failed
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logFailed]]
+              writeToDatabase: $[[logFailed]]
+            - method: stop
+
+      steps:
+        - method: from
+          component: besworkfile
+          properties:
+            directory: $[[workDirectory]]
+            checkpointDirectory: $[[checkpointDirectory]]
+            pollTimeout: $[[pollTimeout]]
+            pipelineName: $[[pipelineName]]
+            maxBackfillMinutes: $[[maxBackfillMinutes]]
+            maxBackfillFiles: $[[maxBackfillFiles]]
+
+        - method: setProperty
+          key: parentId
+          value:
+            type: "simple"
+            expression: "${exchangeId}"
+
+        - method: log
+          level: "DEBUG"
+          message: "Writing body to received file"
+
+        # Log every event line read from the work files, whether or not it matches
+        # allow/deny or the tag list - besworkfile forwards everything, it never drops
+        # anything itself (the rotation marker line is already filtered out at the
+        # component level, before this point).
+        - method: isslog
+          message: "parentId=${exchange.properties[parentId]} | received | ${bodyAs(String)}"
+          type: received
+          queueSize: $[[uiMessageLimit]]
+          writeToFile: $[[logReceived]]
+          writeToDatabase: $[[logReceived]]
+
+        # REF-WFP - Handle allow list (reuses the platform's allowDenyFilter step, same
+        # mechanism file-to-tcp.yml uses)
+        - method: choice
+          when:
+            - predicate:
+                type: groovy
+                expression: |
+                  def ph = exchange.properties.get("placeholders") ?: [:]
+
+                  def preset = (ph.get("allowListPreset") ?: "").toString().trim()
+                  def list = ph.get("allowList")
+
+                  def hasPreset =
+                    preset &&
+                    !preset.equalsIgnoreCase("NOT_SET")
+
+                  def hasList =
+                    list != null &&
+                    !(list instanceof String && (list.trim() == "" || list.equalsIgnoreCase("NOT_SET"))) &&
+                    !(list instanceof List && list.isEmpty())
+
+                  return hasPreset || hasList
+              steps:
+                - method: allowDenyFilter
+                  mode: allow
+                  allowDenyListPresetRef: ${exchangeProperty.placeholders[allowListPreset]}
+                  expressionsRef: ${exchangeProperty.placeholders[allowList]}
+                  allowSteps:
+                    - method: log
+                      level: DEBUG
+                      message: "Message allowed. Matched expression: ${header[ISS_FILTER_MATCH_EXPRESSION]}"
+                  denySteps:
+                    - method: setHeader
+                      key: ISS_FILTER_MATCH_EXPRESSION_LOG
+                      value:
+                        type: groovy
+                        expression: |
+                          def v = header['ISS_FILTER_MATCH_EXPRESSION']
+                          def s = v == null ? "" : v.toString().trim()
+                          return s ? s : "NO_ALLOW_EXPRESSION_MATCHED"
+                    - method: log
+                      level: "DEBUG"
+                      message: "Message not allowed by allowList. Matched expression: ${header.ISS_FILTER_MATCH_EXPRESSION_LOG}"
+                    - method: isslog
+                      message: "parentId=${exchange.properties[parentId]} | dropped (Allow List) | matchedExpr=${header.ISS_FILTER_MATCH_EXPRESSION_LOG} | ${bodyAs(String)}"
+                      type: dropped
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logDropped]]
+                      writeToDatabase: $[[logDropped]]
+                    - method: stop
+          otherwise:
+            - method: log
+              level: "DEBUG"
+              message: "No allowList definitions"
+
+        # REF-WFQ - Handle deny list
+        - method: choice
+          when:
+            - predicate:
+                type: groovy
+                expression: |
+                  def ph = exchange.properties.get("placeholders") ?: [:]
+
+                  def preset = (ph.get("denyListPreset") ?: "").toString().trim()
+                  def list = ph.get("denyList")
+
+                  def hasPreset =
+                    preset &&
+                    !preset.equalsIgnoreCase("NOT_SET")
+
+                  def hasList =
+                    list != null &&
+                    !(list instanceof String && (list.trim() == "" || list.equalsIgnoreCase("NOT_SET"))) &&
+                    !(list instanceof List && list.isEmpty())
+
+                  return hasPreset || hasList
+              steps:
+                - method: allowDenyFilter
+                  mode: deny
+                  allowDenyListPresetRef: ${exchangeProperty.placeholders[denyListPreset]}
+                  expressionsRef: ${exchangeProperty.placeholders[denyList]}
+                  allowSteps:
+                    - method: log
+                      level: WARN
+                      message: "Message is allowed"
+                  denySteps:
+                    - method: setHeader
+                      key: ISS_FILTER_MATCH_EXPRESSION_LOG
+                      value:
+                        type: groovy
+                        expression: |
+                          def v = header['ISS_FILTER_MATCH_EXPRESSION']
+                          def s = v == null ? "" : v.toString().trim()
+                          return s ? s : "NO_DENY_EXPRESSION_MATCHED"
+                    - method: log
+                      level: "DEBUG"
+                      message: "Message blocked by denyList. Matched expression: ${header.ISS_FILTER_MATCH_EXPRESSION_LOG}"
+                    - method: isslog
+                      message: "parentId=${exchange.properties[parentId]} | dropped (Deny List) | matchedExpr=${header.ISS_FILTER_MATCH_EXPRESSION_LOG} | ${bodyAs(String)}"
+                      type: dropped
+                      queueSize: $[[uiMessageLimit]]
+                      writeToFile: $[[logDropped]]
+                      writeToDatabase: $[[logDropped]]
+                    - method: stop
+          otherwise:
+            - method: log
+              level: "DEBUG"
+              message: "No denyList definitions"
+
+        # Tag list - simple convenience filter, evaluated after allow/deny.
+        - method: choice
+          when:
+            - predicate:
+                type: groovy
+                expression: |
+                  def ph = exchange.properties.get("placeholders") ?: [:]
+                  def tagsRaw = ph.get("allowedTags")
+                  def tags =
+                      tagsRaw instanceof Collection ?
+                          tagsRaw.collect { it.toString().trim() } :
+                          (tagsRaw ?: "")
+                              .toString()
+                              .split(",")
+                              .collect { it.trim() }
+                              .findAll { it }
+                  def body = exchange.getIn().getBody(String.class) ?: ""
+                  return tags.isEmpty() || tags.any { body.contains("<${it}>") }
+              steps:
+                - method: log
+                  level: "DEBUG"
+                  message: "writing to processed file"
+                - method: isslog
+                  message: "parentId=${exchange.properties[parentId]} | processed | ${bodyAs(String)}"
+                  type: processed
+                  queueSize: $[[uiMessageLimit]]
+                  writeToFile: $[[logProcessed]]
+                  writeToDatabase: $[[logProcessed]]
+          otherwise:
+            - method: isslog
+              message: "parentId=${exchange.properties[parentId]} | dropped (Tag List) | ${bodyAs(String)}"
+              type: dropped
+              queueSize: $[[uiMessageLimit]]
+              writeToFile: $[[logDropped]]
+              writeToDatabase: $[[logDropped]]
+            - method: stop
+
+        # REF-WFR - Send the event to the currently-elected master piscom connection and
+        # block for iiSCOM2007's correlated reply. Must use identical connection placeholder
+        # values to piscom-to-tcp's `from: piscom` step so both endpoints resolve to the same
+        # shared connection group.
+        # Keep the event itself - piscom replaces the body with iiSCOM2007's reply.
+        - method: setProperty
+          key: sentEvent
+          value:
+            type: "simple"
+            expression: "${bodyAs(String)}"
+
+        - method: to
+          component: piscom
+          properties:
+            hosts: $[[hosts]]
+            timeout: $[[timeout]]
+            connectTimeout: $[[connectTimeout]]
+            heartbeatInterval: $[[heartbeatInterval]]
+            commandTimeout: $[[commandTimeout]]
+
+        - method: log
+          level: "DEBUG"
+          message: "writing to sent file"
+        - method: isslog
+          message: "parentId=${exchange.properties[parentId]} | sent | ${exchange.properties[sentEvent]} | reply=${bodyAs(String)}"
+          type: sent
+          queueSize: $[[uiMessageLimit]]
+          writeToFile: $[[logSent]]
+          writeToDatabase: $[[logSent]]
