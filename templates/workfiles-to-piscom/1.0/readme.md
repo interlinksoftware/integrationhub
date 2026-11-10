@@ -56,7 +56,7 @@ From the Pipelines section of the user interface you can create, update and dele
 | Property               | Description                                                      |
 | :--------------------- | :--------------------------------------------------------------- |
 | `Work Directory`       | The BES work-files directory to watch (e.g. `/opt/ISS/logs/bes/work/<mcname>`). Default is `/opt/ISS/logs/bes/work/Integrations` |
-| `Event Types Allowed`  | Comma-separated event types to send to SCOM (e.g. `C, A, AN, P, R, UF`). An event is sent if it contains any of these tags. Leave empty to send every event that passes the Allow/Deny list. Default is `C,AN,A` |
+| `Event Types Allowed`  | Comma-separated event types to send to SCOM (e.g. `C, A, AN, P, R, UF`). An event is sent if it contains any of these tags. Leave empty to send every event that passes the Allow/Deny list. Default is `C,AN,A,UF` |
 
 #### Optional Settings
 

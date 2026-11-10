@@ -70,7 +70,7 @@ shared:
           bind-to-exchange: true
           required: false
           type: "array"
-          defaultValue: "C,AN,A"
+          defaultValue: "C,AN,A,UF"
 
         # SCOM connection placeholders - must match the piscom-to-tcp pipeline's values
         # exactly so both pipelines' piscom: endpoints resolve to the same shared connection.
@@ -656,9 +656,17 @@ shared:
                 type: groovy
                 expression: |
                   def ph = exchange.properties.get("placeholders") ?: [:]
-                  def tags = (ph.get("allowedTags") ?: "").toString().split(",").collect { it.trim() }.findAll { it }
+                  def tagsRaw = ph.get("allowedTags")
+                  def tags =
+                      tagsRaw instanceof Collection ?
+                          tagsRaw.collect { it.toString().trim() } :
+                          (tagsRaw ?: "")
+                              .toString()
+                              .split(",")
+                              .collect { it.trim() }
+                              .findAll { it }
                   def body = exchange.getIn().getBody(String.class) ?: ""
-                  return tags.isEmpty() || tags.any { body.contains("<" + it + ">") }
+                  return tags.isEmpty() || tags.any { body.contains("<${it}>") }
               steps:
                 - method: log
                   level: "DEBUG"
